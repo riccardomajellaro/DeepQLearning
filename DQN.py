@@ -13,6 +13,12 @@ class DQL:
             - temp : temperature parameter for softmax selection
             - model : Deep Learning agent (model in pytorch)
             - env : Environment to train our model 
+
+        About the model:
+        The model should output two parameters which indicates the probability
+        for each action. The cart problem can be solved with the sigmoid
+        and only one output on the model however, we will do it this way 
+        in order to handle different environments with more actions later on.
     """
     def __init__(self,  replay_buffer=True,
                         er_size = None,
@@ -23,7 +29,7 @@ class DQL:
                         epsilon = None,
                         temp = None,
                         model = None,
-                        convolution = False,
+                        input_is_img = None,
                         env = None,
                 ):
         self.experiece_replay = replay_buffer
@@ -35,7 +41,7 @@ class DQL:
         self.epsilon = epsilon
         self.temp = temp
         self.model = model
-        self.convolution = convolution
+        self.input_is_img = input_is_img
         self.env = env
               
 
@@ -46,7 +52,7 @@ class DQL:
         initial_observation = env.reset()
 
         # Create data dictionary
-        D = {   
+        self.D = {   
                 'episode_sequence': np.array(),
                 'action_sequence' : np.array(),
                 'reward_sequence' : np.array(),
@@ -54,40 +60,45 @@ class DQL:
                 'function_sequence' : np.array()
             }
 
-        # TODO: Initialize action-value function Q with random weights?
-        # Does it mean to just initialie the model? This has already done when passing the model above
+        # TODO? Initialize action-value function Q with random weights?
+        # Does it mean to just initialie the model? 
+        # This has already done when passing the model above probably,
+        # since weights get initialized
 
         # Iterate over episodes
         for ep in range(self.episode_size):
             # Initialize sequence s1 = {x1} and preprocess f1 = f(s1)
 
-            # Control if we are using convolution to append image instead of observations
-            if self.convolution:
+            # Control if we are using images as input of the model instead of observations
+            if self.input_is_img:
+                # TODO: add normalization. 
+                # (also flattening is needed for DNN)
+                # but it can be done in the model when creating it which is better
                 s1 = env.render(mode='rgb_array')
             else:
                 s1 = initial_observation
-            D['episode_sequence'].append(s1)
-            D['function_sequence'].append(sigmoid(self.model.forward(obs)))
+            self.D['episode_sequence'].append(s1)
+            self.D['function_sequence'].append((self.model.forward(torch.FloatTensor(obs)))
 
             # Iterate over timesteps
             for t in range(self.timestep_size):
                 # Select random action with probability epsilon or follow egreedy policy
-                a = self.select_action(D['episode_sequence'][t],self.policy, self.epsilon, self.temp)
+                a = self.select_action(self.D['episode_sequence'][t],self.policy, self.epsilon, self.temp)
                 
                 # Execute action a_t in emulator and observe reward rt and image x_t+1
                 obs, rew, done, _ = env.step(a)
 
-                # Save all relevant data in D
-                if self.convolution:
-                    D['episode_sequence'].append(env.render(mode='rgb_array'))
+                # Save all relevant data in self.D
+                if self.input_is_img:
+                    self.D['episode_sequence'].append(env.render(mode='rgb_array'))
                 else: 
-                    D['episode_sequence'].append(obs)
-                D['action_sequence'].append(a)
-                D['reward_sequence'].append(rew)
-                D['done_sequence'].append(done)
-                D['function_sequence'].append(sigmoid(self.model.forward(obs)))
+                    self.D['episode_sequence'].append(obs)
+                self.D['action_sequence'].append(a)
+                self.D['reward_sequence'].append(rew)
+                self.D['done_sequence'].append(done)
+                self.D['function_sequence'].append(self.model.forward(torch.FloatTensor(obs)))
 
-                # TODO: Sample random minibatch of transitions from D and beyond
+                # TODO: Sample random minibatch of transitions from self.D and beyond
                 # I think the minibatch is simply considers a transition of two consecutive timesteps.
                 # It makes sense this way because it says from index j (considering it is a random number between 0 and self.timestep_size-1), 
                 # to j+1 which is the next timestep.
@@ -108,9 +119,10 @@ class DQL:
         self.env.close()
 
 
-    def select_action(self, s, policy='egreedy', epsilon=None, temp=None):
+    def select_action(self, curr_timestep, policy='egreedy', epsilon=None, temp=None):
         # TODO: FIX! THIS IS JUST THE OLD IMPLEMENTATION. MUST TAKE VALUE FROM MODEL!
         # Instead of self.Q_sa we need to look at the model prediction in D['function_sequence']
+        # 
         if policy == 'egreedy':
             if epsilon is None:
                 raise KeyError("Provide an epsilon")
@@ -122,14 +134,15 @@ class DQL:
                 a = np.random.randint(0,self.env.action_space.n)
             else:
                 # Select most probable action
-                a = argmax(self.Q_sa[s])  
+                a = round(self.D['function_sequence'][curr_timestep])  
                 
         elif policy == 'softmax':
+            # TODO: FIX
             if temp is None:
                 raise KeyError("Provide a temperature")
                 
             # we use the provided softmax function in Helper.py
-            probs = softmax(self.Q_sa[s], temp)
+            probs = softmax(self.D['function_sequence'][curr_timestep], temp)
             a = np.random.choice(range(0, self.env.action_space.n),p=probs)
         return a
 

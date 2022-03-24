@@ -2,13 +2,15 @@ import numpy as np
 import torch
 
 def sigmoid(x):
-    return torch.round(torch.sigmoid(x))
+    return torch.sigmoid(x)
 
 def softmax(x, temp):
-    ''' Computes the softmax of vector x with temperature parameter 'temp' '''
-    x = x / temp # scale by temperature
-    z = x - max(x) # substract max to prevent overflow of softmax 
-    return np.exp(z)/np.sum(np.exp(z)) # compute softmax
+    ''' Computes the softmax of vector x with temperature parameter 'temp'
+        x should be of type torch.FloatTensor
+     '''
+    x = x / torch.FloatTensor([temp]) # scale by temperature
+    z = x - torch.max(x) # substract max to prevent overflow of softmax 
+    return torch.exp(z)/torch.sum(torch.exp(z)) # compute softmax
 
 def argmax(x):
     ''' Own variant of np.argmax with random tie breaking '''

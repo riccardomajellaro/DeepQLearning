@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torchvision.transforms as transforms
 
-class DNN(nn.Module):
+class NN(nn.Module):
     # TODO: Add convolutional parameter and layers
     def __init__(self, input_dim, output_dim, n_hidden_layers, neurons_per_layer):
         self.input_dim = input_dim
@@ -11,9 +11,12 @@ class DNN(nn.Module):
         self.neurons_per_layer = neurons_per_layer
 
         # Model architecture
-        super(DNN, self).__init__()
+        super(NN, self).__init__()
         
         # Create input layer
+        # TODO: For Dense NN:
+        # Check if input is more than 1 dimension and flatten if 
+        # needed. This is in case we are using image frames as input.
         self.input_layer = nn.Sequential(
             nn.Linear(input_dim, neurons_per_layer),
             nn.ReLU()
@@ -34,8 +37,9 @@ class DNN(nn.Module):
         
 
     def forward(self, x):
-        """ Forward pass
+        """ Forward pass through network
         """
+        # TODO: Add check for convolutional layers
         x = self.input_layer(x)
         x = self.hidden_layers(x)
         x = self.output_layer(x)
