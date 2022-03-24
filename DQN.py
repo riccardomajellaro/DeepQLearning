@@ -78,7 +78,7 @@ class DQL:
             else:
                 s1 = initial_observation
             self.D['episode_sequence'].append(s1)
-            self.D['function_sequence'].append((self.model.forward(torch.FloatTensor(obs)))
+            self.D['function_sequence'].append(self.model.forward(torch.FloatTensor(obs)))
 
             # Iterate over timesteps
             for t in range(self.timestep_size):
