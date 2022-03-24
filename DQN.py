@@ -1,5 +1,6 @@
 import numpy as np
 import gym
+from Utilities import *
 
 class DQL:
     """ Parameters:
@@ -14,6 +15,9 @@ class DQL:
                         er_size = None,
                         episode_size = None,
                         timesteps_size = None,
+                        policy = None,
+                        epsilon = None,
+                        temp = None,
                         model = None,
                         env = None,
                 ):
@@ -21,9 +25,36 @@ class DQL:
         self.er_size = er_size
         self.episode_size = episode_size
         self.timestep_size = timesteps_size
+        self.policy = policy
+        self.epsilon = epsilon
+        self.temp = temp
         self.model = model
         self.env = env
+
+    def select_action(self, s, policy='egreedy', epsilon=None, temp=None):
         
+        if policy == 'egreedy':
+            if epsilon is None:
+                raise KeyError("Provide an epsilon")
+                
+            # Randomly generate a value between [0,1] with a uniform distribution
+            p = np.random.uniform(0,1,1)[0]
+            if p < epsilon:
+                # Select random action
+                a = np.random.randint(0,self.n_actions)
+            else:
+                # Select most probable action
+                a = argmax(self.Q_sa[s])  
+                
+        elif policy == 'softmax':
+            if temp is None:
+                raise KeyError("Provide a temperature")
+                
+            # we use the provided softmax function in Helper.py
+            probs = softmax(self.Q_sa[s], temp)
+            a = np.random.choice(range(0, self.n_actions),p=probs)
+        return a
+              
 
     def __call__(self):
 
@@ -34,10 +65,18 @@ class DQL:
 
 
         # Iterate over episodes
-        for i in range(self.episode_size):
+        for ep in range(self.episode_size):
             # Initialize sequence s1 = {x1} and preprocess f1 = f(s1)
             s1 = env.render(mode='rgb_array')
             episode_sequence.append(s1)
+            obs, rew, done, info = env.step(env.action_space.sample())
+            #TODO: pass observations to the model and return softmax of actions: left or right
+
+            for t in range(self.timestep_size):
+                pass
+
+
+    self.env.close()
 
 
 
