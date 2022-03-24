@@ -9,6 +9,8 @@ class DQL:
             - er_size : experience replay buffer size
             - episode_size : size of the episode to consider
             - timesteps_size : numer of timesteps per episode to consider
+            - epsilon : probability to choose a random action
+            - temp : temperature parameter for softmax selection
             - model : Deep Learning agent (model in pytorch)
             - env : Environment to train our model 
     """
@@ -50,6 +52,7 @@ class DQL:
 
             # Iterate over timesteps
             for t in range(self.timestep_size):
+                # TODO
                 pass
 
 
