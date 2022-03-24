@@ -3,7 +3,7 @@ from torch import nn
 import torchvision.transforms as transforms
 
 class DNN(nn.Module):
-    # TODO: Add convolutional layers
+    # TODO: Add convolutional parameter and layers
     def __init__(self, input_dim, output_dim, n_hidden_layers, neurons_per_layer):
         self.input_dim = input_dim
         self.output_dim = output_dim

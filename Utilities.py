@@ -16,3 +16,8 @@ def argmax(x):
         return np.random.choice(np.where(x == np.max(x))[0])
     except:
         return np.argmax(x)
+
+
+def preprocess_img(img_array):
+    # TODO: Make a function that processes the images for the cnn model version
+    pass

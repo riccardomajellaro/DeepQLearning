@@ -23,6 +23,7 @@ class DQL:
                         epsilon = None,
                         temp = None,
                         model = None,
+                        convolution = False,
                         env = None,
                 ):
         self.experiece_replay = replay_buffer
@@ -34,13 +35,17 @@ class DQL:
         self.epsilon = epsilon
         self.temp = temp
         self.model = model
+        self.convolution = convolution
         self.env = env
               
 
     def __call__(self):
 
+        # Initialize environment
         env = gym.make(self.env)
-        env.reset()
+        initial_observation = env.reset()
+
+        # Create data dictionary
         D = {   
                 'episode_sequence': np.array(),
                 'action_sequence' : np.array(),
@@ -50,12 +55,17 @@ class DQL:
             }
 
         # TODO: Initialize action-value function Q with random weights?
-        # Does it mean to just initialie the model? 
+        # Does it mean to just initialie the model? This has already done when passing the model above
 
         # Iterate over episodes
         for ep in range(self.episode_size):
             # Initialize sequence s1 = {x1} and preprocess f1 = f(s1)
-            s1 = env.render(mode='rgb_array')
+
+            # Control if we are using convolution to append image instead of observations
+            if self.convolution:
+                s1 = env.render(mode='rgb_array')
+            else:
+                s1 = initial_observation
             D['episode_sequence'].append(s1)
             D['function_sequence'].append(sigmoid(self.model.forward(obs)))
 
@@ -65,10 +75,13 @@ class DQL:
                 a = self.select_action(D['episode_sequence'][t],self.policy, self.epsilon, self.temp)
                 
                 # Execute action a_t in emulator and observe reward rt and image x_t+1
-                obs, rew, done, info = env.step(a)
+                obs, rew, done, _ = env.step(a)
 
                 # Save all relevant data in D
-                D['episode_sequence'].append(env.render(mode='rgb_array'))
+                if self.convolution:
+                    D['episode_sequence'].append(env.render(mode='rgb_array'))
+                else: 
+                    D['episode_sequence'].append(obs)
                 D['action_sequence'].append(a)
                 D['reward_sequence'].append(rew)
                 D['done_sequence'].append(done)
@@ -80,13 +93,14 @@ class DQL:
                 # to j+1 which is the next timestep.
                 # This way the problem of dimensions at first iteration does not exist because we already have two frames! :D
 
-                # TODO: Calculate y_j, which is simple by the formula given.
+                # TODO: Calculate y_j, which should be pretty straightforward by the formula given.
 
                 # TODO: Perform gradient descend which I dunno how to do.
                 # Help :D
 
 
                 pass
+
         # TODO: Save the model. Not only the weights,
         # unless you remeber the configuration, 
         # because of the dynamic creation of the model
