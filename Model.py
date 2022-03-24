@@ -21,7 +21,7 @@ class DNN(nn.Module):
         
         # Create hidden layers
         hidden_layers = []
-        for hidden_layer in range(n_hidden_layers):
+        for _ in range(n_hidden_layers):
             hidden_layers.append(nn.Linear(neurons_per_layer, neurons_per_layer))
             hidden_layers.append(nn.ReLU())
         self.hidden_layers = nn.Sequential(*hidden_layers)

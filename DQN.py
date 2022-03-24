@@ -18,6 +18,7 @@ class DQL:
                         er_size = None,
                         episode_size = None,
                         timesteps_size = None,
+                        minibatch_size = None,
                         policy = None,
                         epsilon = None,
                         temp = None,
@@ -28,6 +29,7 @@ class DQL:
         self.er_size = er_size
         self.episode_size = episode_size
         self.timestep_size = timesteps_size
+        self.minibatch_size = minibatch_size
         self.policy = policy
         self.epsilon = epsilon
         self.temp = temp
@@ -39,28 +41,62 @@ class DQL:
 
         env = gym.make(self.env)
         env.reset()
-        episode_sequence = []
-        function_values = []
+        D = {   
+                'episode_sequence': np.array(),
+                'action_sequence' : np.array(),
+                'reward_sequence' : np.array(),
+                'done_sequence' : np.array(),
+                'function_sequence' : np.array()
+            }
+
+        # TODO: Initialize action-value function Q with random weights?
+        # Does it mean to just initialie the model? 
 
         # Iterate over episodes
         for ep in range(self.episode_size):
             # Initialize sequence s1 = {x1} and preprocess f1 = f(s1)
             s1 = env.render(mode='rgb_array')
-            episode_sequence.append(s1)
-            obs, rew, done, info = env.step(env.action_space.sample())
-            function_values.append(sigmoid(self.model.forward(obs)))
+            D['episode_sequence'].append(s1)
+            D['function_sequence'].append(sigmoid(self.model.forward(obs)))
 
             # Iterate over timesteps
             for t in range(self.timestep_size):
-                # TODO
-                pass
+                # Select random action with probability epsilon or follow egreedy policy
+                a = self.select_action(D['episode_sequence'][t],self.policy, self.epsilon, self.temp)
+                
+                # Execute action a_t in emulator and observe reward rt and image x_t+1
+                obs, rew, done, info = env.step(a)
 
+                # Save all relevant data in D
+                D['episode_sequence'].append(env.render(mode='rgb_array'))
+                D['action_sequence'].append(a)
+                D['reward_sequence'].append(rew)
+                D['done_sequence'].append(done)
+                D['function_sequence'].append(sigmoid(self.model.forward(obs)))
+
+                # TODO: Sample random minibatch of transitions from D and beyond
+                # I think the minibatch is simply considers a transition of two consecutive timesteps.
+                # It makes sense this way because it says from index j (considering it is a random number between 0 and self.timestep_size-1), 
+                # to j+1 which is the next timestep.
+                # This way the problem of dimensions at first iteration does not exist because we already have two frames! :D
+
+                # TODO: Calculate y_j, which is simple by the formula given.
+
+                # TODO: Perform gradient descend which I dunno how to do.
+                # Help :D
+
+
+                pass
+        # TODO: Save the model. Not only the weights,
+        # unless you remeber the configuration, 
+        # because of the dynamic creation of the model
 
         self.env.close()
 
 
     def select_action(self, s, policy='egreedy', epsilon=None, temp=None):
-        
+        # TODO: FIX! THIS IS JUST THE OLD IMPLEMENTATION. MUST TAKE VALUE FROM MODEL!
+        # Instead of self.Q_sa we need to look at the model prediction in D['function_sequence']
         if policy == 'egreedy':
             if epsilon is None:
                 raise KeyError("Provide an epsilon")
@@ -69,7 +105,7 @@ class DQL:
             p = np.random.uniform(0,1,1)[0]
             if p < epsilon:
                 # Select random action
-                a = np.random.randint(0,self.n_actions)
+                a = np.random.randint(0,self.env.action_space.n)
             else:
                 # Select most probable action
                 a = argmax(self.Q_sa[s])  
@@ -80,7 +116,7 @@ class DQL:
                 
             # we use the provided softmax function in Helper.py
             probs = softmax(self.Q_sa[s], temp)
-            a = np.random.choice(range(0, self.n_actions),p=probs)
+            a = np.random.choice(range(0, self.env.action_space.n),p=probs)
         return a
 
 
