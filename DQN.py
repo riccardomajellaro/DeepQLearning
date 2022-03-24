@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 import gym
 from Utilities import *
 
@@ -30,6 +31,30 @@ class DQL:
         self.temp = temp
         self.model = model
         self.env = env
+              
+
+    def __call__(self):
+
+        env = gym.make(self.env)
+        env.reset()
+        episode_sequence = []
+        function_values = []
+
+        # Iterate over episodes
+        for ep in range(self.episode_size):
+            # Initialize sequence s1 = {x1} and preprocess f1 = f(s1)
+            s1 = env.render(mode='rgb_array')
+            episode_sequence.append(s1)
+            obs, rew, done, info = env.step(env.action_space.sample())
+            function_values.append(sigmoid(self.model.forward(obs)))
+
+            # Iterate over timesteps
+            for t in range(self.timestep_size):
+                pass
+
+
+        self.env.close()
+
 
     def select_action(self, s, policy='egreedy', epsilon=None, temp=None):
         
@@ -54,29 +79,7 @@ class DQL:
             probs = softmax(self.Q_sa[s], temp)
             a = np.random.choice(range(0, self.n_actions),p=probs)
         return a
-              
 
-    def __call__(self):
-
-        env = gym.make(self.env)
-        env.reset()
-        episode_sequence = []
-
-
-
-        # Iterate over episodes
-        for ep in range(self.episode_size):
-            # Initialize sequence s1 = {x1} and preprocess f1 = f(s1)
-            s1 = env.render(mode='rgb_array')
-            episode_sequence.append(s1)
-            obs, rew, done, info = env.step(env.action_space.sample())
-            #TODO: pass observations to the model and return softmax of actions: left or right
-
-            for t in range(self.timestep_size):
-                pass
-
-
-    self.env.close()
 
 
 

@@ -1,4 +1,8 @@
 import numpy as np
+import torch
+
+def sigmoid(x):
+    return torch.round(torch.sigmoid(x))
 
 def softmax(x, temp):
     ''' Computes the softmax of vector x with temperature parameter 'temp' '''
