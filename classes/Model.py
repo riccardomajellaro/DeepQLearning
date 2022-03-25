@@ -48,17 +48,17 @@ class MLP(NN):
         
         # Create hidden layers
         self.hidden_layers = nn.Sequential(
-            nn.Linear(input_dim, 8),
+            nn.Linear(input_dim, 32),
             nn.Tanh(),
-            nn.Linear(8, 16),
+            nn.Linear(32, 64),
             # nn.Dropout(0.4),
-            # nn.ELU(),
-            nn.Linear(16, 8),
+            nn.Tanh(),
+            nn.Linear(64, 32),
             # nn.Dropout(0.2),
-            # nn.ELU()
+            nn.Tanh()
         )
 
         # Create output layer
         self.output_layer = nn.Sequential(
-            nn.Linear(8, output_dim)
+            nn.Linear(32, output_dim)
         )

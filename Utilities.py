@@ -15,7 +15,7 @@ def softmax(x, temp):
 def argmax(x):
     ''' Own variant of np.argmax with random tie breaking '''
     try:
-        return np.random.choice(torch.where(x == torch.max(x))[0])
+        return torch.tensor(np.random.choice(torch.where(x == torch.max(x))[0]), dtype=torch.int64)
     except:
         return torch.argmax(x)
 

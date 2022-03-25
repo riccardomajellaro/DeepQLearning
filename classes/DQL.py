@@ -162,7 +162,7 @@ class DQL:
                 # compute q values for target and current using dnn
                 q_exp = self.model.forward(s_exp, self.device)[np.arange(len(a_exp)), a_exp]
                 q_exp_target = torch.max(self.target_model.forward(s_next_exp, self.device), axis=1)[0].detach()
-                # compute loss
+                # compute mean loss of the batch
                 loss = self.loss(q_exp, r_exp.to(self.device) + self.gamma*q_exp_target*~done_exp.to(self.device))
                 loss_ep += loss.cpu().detach().numpy()
                 # compute gradient of loss
@@ -176,7 +176,7 @@ class DQL:
                     break
             
             if not ((ep+1) % 100):
-                print(f"[{ep+1}] Episode mean loss: {loss_ep/ts_ep} | Episode reward: {r_ep}")
+                print(f"[{ep+1}] Episode mean loss: {round(loss_ep/ts_ep, 4)} | Episode reward: {r_ep}")
 
         # TODO: Save the model. Not only the weights,
         # unless you remeber the configuration, 
