@@ -11,7 +11,12 @@ env = gym.make('CartPole-v1')
 net = MLP(4, 2)
 # optimizer = torch.optim.SGD(net.parameters(), lr=1e-4)
 optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
-dql = DQL(rb_size=2000, n_episodes=3000, batch_size=256, optimizer=optimizer, gamma=0.9, policy="egreedy", epsilon=0.05, temp=0.1, model=net, env=env, render=False)
+dql = DQL(
+    rb_size=2000, batch_size=256, n_episodes=3000,
+    optimizer=optimizer, gamma=0.9,
+    policy="egreedy", epsilon=0.05, temp=0.1,
+    model=net, target_model=True, env=env, render=False
+)
 dql()
 
 if evaluate:
