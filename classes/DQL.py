@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from collections import deque
 from Utilities import *
 
 
@@ -59,7 +60,7 @@ class DQL:
 
     def __call__(self):
         # Create replay buffer
-        self.rb = []
+        self.rb = deque(maxlen=self.rb_size)
 
         # Iterate over episodes
         for ep in range(self.n_episodes):
@@ -75,6 +76,7 @@ class DQL:
             # Iterate over timesteps
             loss_tot = 0
             ts_tot = 0
+            r_tot = 0
             done = False
             while not done:
                 ts_tot += 1
@@ -84,13 +86,15 @@ class DQL:
                     self.env.render()
                 # Execute action a_t in emulator and observe reward rt and image x_t+1
                 s_next, r, done, _ = self.env.step(a)
+                r_tot += r
                 # Save step in replay buffer
                 if self.input_is_img:
                     s_next = self.env.render(mode='rgb_array')
+                # add to replay buffer
                 self.rb.append((s, a, r, s_next, done))
-                if len(self.rb) > self.rb_size:
-                    self.rb.pop(0)
-                # add to experience replay
+                # draw from replay buffer
+                if len(self.rb) < self.rb_size:  # to fill the replay buffer before starting training
+                    continue
                 sampled_exp = np.array(self.rb, dtype=object)[np.random.choice(len(self.rb), size=self.batch_size)]
                 s_exp = torch.FloatTensor(np.array([sample[0] for sample in sampled_exp]))
                 a_exp = [sample[1] for sample in sampled_exp]
@@ -111,7 +115,8 @@ class DQL:
                 if self.n_timesteps is not None and ts_tot == self.n_timesteps:
                     break
             
-            print(f"[{ep}] Episode mean loss: {round(loss_tot/ts_tot, 3)}")
+            if not ((ep+1) % 50):
+                print(f"[{ep+1}] Episode mean loss: {loss_tot/ts_tot} | Episode reward: {r_tot}")
 
         # TODO: Save the model. Not only the weights,
         # unless you remeber the configuration, 

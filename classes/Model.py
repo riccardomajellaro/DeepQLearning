@@ -1,4 +1,3 @@
-import torch
 from torch import nn
 
 
@@ -49,7 +48,7 @@ class MLP(NN):
         # Create hidden layers
         self.hidden_layers = nn.Sequential(
             nn.Linear(input_dim, 8),
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Linear(8, 16),
             # nn.Dropout(0.4),
             # nn.ELU(),
