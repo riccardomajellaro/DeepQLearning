@@ -1,5 +1,5 @@
-from DQL import DQL
-from Model import *
+from classes.DQL import DQL
+from classes.Model import *
 import gym
 import torch
 from Utilities import argmax
