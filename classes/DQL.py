@@ -30,6 +30,7 @@ class DQL:
             rb_size = 20,
             n_episodes = 100,
             n_timesteps = None,
+            loss=None,
             optimizer=None,
             policy = "egreedy",
             epsilon = None,
@@ -61,11 +62,28 @@ class DQL:
         # target_model is exactly self.model
         else:
             self.target_model = self.model
+        self.loss = loss
+        if self.loss is None:
+            exit("Please select a loss")
         self.optimizer = optimizer
         if self.optimizer is None:
             exit("Please select an optimization algorithm")
         self.input_is_img = input_is_img
         self.render = render
+
+    def compare_models(self, model_1, model_2):
+        models_differ = 0
+        for key_item_1, key_item_2 in zip(model_1.state_dict().items(), model_2.state_dict().items()):
+            if torch.equal(key_item_1[1], key_item_2[1]):
+                pass
+            else:
+                models_differ += 1
+                if (key_item_1[0] == key_item_2[0]):
+                    print('Mismtach found at', key_item_1[0])
+                else:
+                    raise Exception
+        if models_differ == 0:
+            print('Models match perfectly! :)')
 
     def update_target(self):
         self.target_model.load_state_dict(self.model.state_dict())
@@ -112,7 +130,7 @@ class DQL:
                 # add to replay buffer
                 self.rb.append((s, a, r, s_next, done))
                 # draw from replay buffer
-                if self.use_rb and len(self.rb) < self.rb_size:  # to fill the replay buffer before starting training
+                if self.use_rb and len(self.rb) < self.batch_size:  # to fill the replay buffer before starting training
                     continue
                 elif not training_started:
                     training_started = True
@@ -127,7 +145,7 @@ class DQL:
                 q_exp = self.model.forward(s_exp)[np.arange(len(a_exp)), a_exp]
                 q_exp_target = torch.max(self.target_model.forward(s_next_exp), axis=1)[0].detach()
                 # compute loss
-                loss = torch.mean((r_exp + self.gamma*q_exp_target - q_exp)**2)
+                loss = self.loss(q_exp, r_exp + self.gamma*q_exp_target)
                 loss_tot += loss.detach().numpy()
                 # compute gradient of loss
                 self.model.train()
@@ -137,7 +155,7 @@ class DQL:
                 if self.n_timesteps is not None and ts_tot == self.n_timesteps:
                     break
             
-            if not ((ep+1) % 50):
+            if not ((ep+1) % 100):
                 print(f"[{ep+1}] Episode mean loss: {loss_tot/ts_tot} | Episode reward: {r_tot}")
 
         # TODO: Save the model. Not only the weights,
