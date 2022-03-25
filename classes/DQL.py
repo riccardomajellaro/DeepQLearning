@@ -84,20 +84,6 @@ class DQL:
         self.input_is_img = input_is_img
         self.render = render
 
-    def compare_models(self, model_1, model_2):
-        models_differ = 0
-        for key_item_1, key_item_2 in zip(model_1.state_dict().items(), model_2.state_dict().items()):
-            if torch.equal(key_item_1[1], key_item_2[1]):
-                pass
-            else:
-                models_differ += 1
-                if (key_item_1[0] == key_item_2[0]):
-                    print('Mismtach found at', key_item_1[0])
-                else:
-                    raise Exception
-        if models_differ == 0:
-            print('Models match perfectly! :)')
-
     def update_target(self):
         self.target_model.load_state_dict(self.model.state_dict())
 
@@ -169,9 +155,13 @@ class DQL:
                 self.model.train()
                 self.optimizer.zero_grad()
                 loss.backward()
-                for param in self.model.parameters():
-                    param.grad.data.clamp_(-1, 1)
+                # clip gradients in (-1, 1)
+                # for param in self.model.parameters():
+                #     param.grad.data.clamp_(-1, 1)
                 self.optimizer.step()
+                # set current state as next_state
+                s = s_next
+                # if a maximum number of timesteps is set, check it
                 if self.n_timesteps is not None and ts_ep == self.n_timesteps:
                     break
             
@@ -212,7 +202,7 @@ class DQL:
 
         elif self.policy == "ucb":
             Qt = self.actions_reward / self.actions_count
-            Ut = 2 * torch.sqrt(torch.log(torch.tensor(t)) / self.actions_count)
+            Ut = 1.5 * torch.sqrt(torch.log(torch.tensor(t)) / self.actions_count)
             a = argmax(Qt + Ut)
             self.actions_count[a] += 1
 

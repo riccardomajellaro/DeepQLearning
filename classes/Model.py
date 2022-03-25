@@ -49,6 +49,7 @@ class MLP(NN):
         # Create hidden layers
         self.hidden_layers = nn.Sequential(
             nn.Linear(input_dim, 32),
+            # nn.BatchNorm1d(32),
             nn.Tanh(),
             nn.Linear(32, 64),
             # nn.Dropout(0.4),

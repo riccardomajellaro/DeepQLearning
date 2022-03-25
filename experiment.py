@@ -12,14 +12,14 @@ net = MLP(4, 2)
 # loss = torch.nn.SmoothL1Loss()
 # loss = torch.nn.L1Loss()
 loss = torch.nn.MSELoss()
-optimizer = torch.optim.SGD(net.parameters(), lr=1e-4)
+# optimizer = torch.optim.SGD(net.parameters(), lr=1e-3)
 # optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
-# optimizer = torch.optim.RMSprop(net.parameters(), lr=1e-3)
+optimizer = torch.optim.RMSprop(net.parameters(), lr=1e-3)
 dql = DQL(
-    rb_size=10000, batch_size=128, n_episodes=6000,
+    rb_size=10000, batch_size=2, n_episodes=6000, device="cpu",
     loss=loss, optimizer=optimizer, gamma=0.99,
-    policy="egreedy", epsilon=(0.05, 0.9, 400), temp=0.1,
-    model=net, target_model=True, env=env, render=False, device="cpu"
+    policy="egreedy", epsilon=(0.01, 0.99, 1000), temp=0.1,
+    model=net, target_model=True, tm_wait=20, env=env, render=False
 )
 dql()
 
