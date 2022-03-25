@@ -57,6 +57,7 @@ class DQL:
         # create an identical separated model updated as self.model each episode
         if target_model:
             self.target_model = deepcopy(self.model)
+            self.target_model.eval()
         # target_model is exactly self.model
         else:
             self.target_model = self.model
@@ -124,7 +125,7 @@ class DQL:
                 s_next_exp = torch.FloatTensor(np.array([sample[3] for sample in sampled_exp]))
                 # compute q values for target and current using dnn
                 q_exp = self.model.forward(s_exp)[np.arange(len(a_exp)), a_exp]
-                q_exp_target = torch.max(self.target_model.forward(s_next_exp), axis=1)[0]
+                q_exp_target = torch.max(self.target_model.forward(s_next_exp), axis=1)[0].detach()
                 # compute loss
                 loss = torch.mean((r_exp + self.gamma*q_exp_target - q_exp)**2)
                 loss_tot += loss.detach().numpy()
