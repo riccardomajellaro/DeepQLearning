@@ -184,7 +184,7 @@ class DQL:
                 raise KeyError("Provide a temperature")
 
             # we use the provided softmax function in Helper.py
-            probs = softmax(q_values, self.temp)
+            probs = softmax(q_values, self.temp).detach().numpy()
             a = np.random.choice(range(0, self.env.action_space.n), p=probs)
         
         return a
