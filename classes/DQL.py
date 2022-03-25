@@ -38,6 +38,7 @@ class DQL:
             gamma = 1,
             model = None,
             target_model = False,
+            tm_wait = 10,
             input_is_img = False,
             env = None,
             render = False
@@ -51,6 +52,10 @@ class DQL:
         self.n_episodes = n_episodes
         self.n_timesteps = n_timesteps
         self.policy = policy
+        # tensor of total count for every possible action
+        self.actions_count = torch.tensor([1]*self.env.action_space.n, dtype=torch.float64)
+        # tensor of total reward for every possible action
+        self.actions_reward = torch.tensor([0]*self.env.action_space.n, dtype=torch.float64)
         self.epsilon = epsilon
         self.temp = temp
         self.gamma = gamma
@@ -62,6 +67,7 @@ class DQL:
         # target_model is exactly self.model
         else:
             self.target_model = self.model
+        self.tm_wait = tm_wait
         self.loss = loss
         if self.loss is None:
             exit("Please select a loss")
@@ -90,10 +96,11 @@ class DQL:
 
     def __call__(self):
         # Create replay buffer
-        self.rb = deque(maxlen=self.rb_size)
+        self.rb = deque([], maxlen=self.rb_size)
 
         # Iterate over episodes
         training_started = False
+        ts_tot = 0
         for ep in range(self.n_episodes):
             if self.use_rb and ep == 0:
                 print("Filling replay buffer before training...")
@@ -105,25 +112,25 @@ class DQL:
                 # (also flattening is needed for DNN)
                 # but it can be done in the model when creating it which is better
                 s = self.env.render(mode='rgb_array')
-
-            # update target model weigths as to current self.model weights
-            if self.target_model:
-                self.update_target()
             
             # Iterate over timesteps
-            loss_tot = 0
-            ts_tot = 0
-            r_tot = 0
+            loss_ep = 0
+            ts_ep = 0
+            r_ep = 0
             done = False
             while not done:
-                ts_tot += 1
+                if self.target_model != self.model and ts_tot % self.tm_wait:
+                    # update target model weigths as current self.model weights
+                    self.update_target()
+                ts_tot, ts_ep = ts_tot + 1, ts_ep + 1
                 # Select random action with probability epsilon or follow egreedy policy
-                a = self.select_action(s, self.model.forward(torch.FloatTensor(s)))
+                a = self.select_action(self.model.forward(torch.tensor(s)), ts_tot)
                 if self.render:
                     self.env.render()
                 # Execute action a_t in emulator and observe reward rt and image x_t+1
                 s_next, r, done, _ = self.env.step(a)
-                r_tot += r
+                r_ep += r
+                self.actions_reward[a] += r
                 # Save step in replay buffer
                 if self.input_is_img:
                     s_next = self.env.render(mode='rgb_array')
@@ -136,27 +143,27 @@ class DQL:
                     training_started = True
                     print("Training started")
                 sampled_exp = np.array(self.rb, dtype=object)[np.random.choice(len(self.rb), size=self.batch_size)]
-                s_exp = torch.FloatTensor(np.array([sample[0] for sample in sampled_exp]))
+                s_exp = torch.tensor(np.array([sample[0] for sample in sampled_exp]))
                 a_exp = [sample[1] for sample in sampled_exp]
-                done_exp = [sample[4] for sample in sampled_exp]
-                r_exp = torch.FloatTensor([sample[2] if not done_exp[i] else 0 for i, sample in enumerate(sampled_exp)])
-                s_next_exp = torch.FloatTensor(np.array([sample[3] for sample in sampled_exp]))
+                done_exp = torch.tensor([sample[4] for sample in sampled_exp])
+                r_exp = torch.tensor([sample[2] if not done_exp[i] else 0 for i, sample in enumerate(sampled_exp)])
+                s_next_exp = torch.tensor(np.array([sample[3] for sample in sampled_exp]))
                 # compute q values for target and current using dnn
                 q_exp = self.model.forward(s_exp)[np.arange(len(a_exp)), a_exp]
                 q_exp_target = torch.max(self.target_model.forward(s_next_exp), axis=1)[0].detach()
                 # compute loss
-                loss = self.loss(q_exp, r_exp + self.gamma*q_exp_target)
-                loss_tot += loss.detach().numpy()
+                loss = self.loss(q_exp, r_exp + self.gamma*q_exp_target*done_exp)
+                loss_ep += loss.detach().numpy()
                 # compute gradient of loss
                 self.model.train()
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
-                if self.n_timesteps is not None and ts_tot == self.n_timesteps:
+                if self.n_timesteps is not None and ts_ep == self.n_timesteps:
                     break
             
             if not ((ep+1) % 100):
-                print(f"[{ep+1}] Episode mean loss: {loss_tot/ts_tot} | Episode reward: {r_tot}")
+                print(f"[{ep+1}] Episode mean loss: {loss_ep/ts_ep} | Episode reward: {r_ep}")
 
         # TODO: Save the model. Not only the weights,
         # unless you remeber the configuration, 
@@ -164,7 +171,7 @@ class DQL:
 
         self.env.close()
 
-    def select_action(self, s, q_values):
+    def select_action(self, q_values, t):
         """ Select a behaviour policy between epsilon-greedy and softmax (boltzmann)
         """
         if self.policy == "egreedy":
@@ -186,5 +193,14 @@ class DQL:
             # we use the provided softmax function in Helper.py
             probs = softmax(q_values, self.temp).detach().numpy()
             a = np.random.choice(range(0, self.env.action_space.n), p=probs)
+
+        elif self.policy == "ucb":
+            Qt = self.actions_reward / self.actions_count
+            Ut = 2 * torch.sqrt(torch.log(torch.tensor(t)) / self.actions_count)
+            a = argmax(Qt + Ut)
+            self.actions_count[a] += 1
+
+        else:
+            exit("Please select an existent behaviour policy")
         
         return a

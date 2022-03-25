@@ -16,9 +16,9 @@ loss = torch.nn.MSELoss()
 # optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
 optimizer = torch.optim.RMSprop(net.parameters(), lr=1e-5)
 dql = DQL(
-    rb_size=10000, batch_size=128, n_episodes=3000,
+    rb_size=10000, batch_size=256, n_episodes=3000,
     loss=loss ,optimizer=optimizer, gamma=0.99,
-    policy="egreedy", epsilon=0.05, temp=0.1,
+    policy="ucb", epsilon=0.05, temp=0.1,
     model=net, target_model=True, env=env, render=False
 )
 dql()
