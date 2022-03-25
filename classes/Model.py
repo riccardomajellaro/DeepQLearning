@@ -30,9 +30,10 @@ class NN(nn.Module):
             nn.Linear(neurons_per_layer, output_dim)
         )
 
-    def forward(self, x):
+    def forward(self, x, device):
         """ Forward pass through network
         """
+        x = x.to(device)
         x = self.hidden_layers(x)
         x = self.output_layer(x)
         return x

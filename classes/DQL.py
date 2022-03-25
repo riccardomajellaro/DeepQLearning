@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import torch
 from copy import deepcopy
@@ -41,7 +42,8 @@ class DQL:
             tm_wait = 10,
             input_is_img = False,
             env = None,
-            render = False
+            render = False,
+            device = None
         ):
         self.env = env
         if self.env is None:
@@ -59,10 +61,15 @@ class DQL:
         self.epsilon = epsilon
         self.temp = temp
         self.gamma = gamma
-        self.model = model
+        if device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device = device
+        print(f"Computing on {self.device} device")
+        self.model = model.to(self.device)
         # create an identical separated model updated as self.model each episode
         if target_model:
-            self.target_model = deepcopy(self.model)
+            self.target_model = deepcopy(self.model).to(self.device)
             self.target_model.eval()
         # target_model is exactly self.model
         else:
@@ -124,11 +131,11 @@ class DQL:
                     self.update_target()
                 ts_tot, ts_ep = ts_tot + 1, ts_ep + 1
                 # Select random action with probability epsilon or follow egreedy policy
-                a = self.select_action(self.model.forward(torch.tensor(s)), ts_tot)
+                a = self.select_action(self.model.forward(torch.tensor(s), self.device), ts_tot)
                 if self.render:
                     self.env.render()
                 # Execute action a_t in emulator and observe reward rt and image x_t+1
-                s_next, r, done, _ = self.env.step(a)
+                s_next, r, done, _ = self.env.step(a.item())
                 r_ep += r
                 self.actions_reward[a] += r
                 # Save step in replay buffer
@@ -143,18 +150,21 @@ class DQL:
                     training_started = True
                     print("Training started")
                 # draw batch from replay buffer
-                sampled_exp = np.array(self.rb, dtype=object)[np.random.choice(len(self.rb), size=self.batch_size)]
+                # samples_indexes = np.random.choice(len(self.rb), size=self.batch_size)
+                # print(self.rb)
+                # sampled_exp = torch.tensor(self.rb)[samples_indexes]
+                sampled_exp = random.sample(self.rb, k=self.batch_size)
                 s_exp = torch.tensor(np.array([sample[0] for sample in sampled_exp]))
                 a_exp = [sample[1] for sample in sampled_exp]
                 done_exp = torch.tensor([sample[4] for sample in sampled_exp])
                 r_exp = torch.tensor([sample[2] if not done_exp[i] else 0 for i, sample in enumerate(sampled_exp)])
                 s_next_exp = torch.tensor(np.array([sample[3] for sample in sampled_exp]))
                 # compute q values for target and current using dnn
-                q_exp = self.model.forward(s_exp)[np.arange(len(a_exp)), a_exp]
-                q_exp_target = torch.max(self.target_model.forward(s_next_exp), axis=1)[0].detach()
+                q_exp = self.model.forward(s_exp, self.device)[np.arange(len(a_exp)), a_exp]
+                q_exp_target = torch.max(self.target_model.forward(s_next_exp, self.device), axis=1)[0].detach()
                 # compute loss
-                loss = self.loss(q_exp, r_exp + self.gamma*q_exp_target*done_exp)
-                loss_ep += loss.detach().numpy()
+                loss = self.loss(q_exp, r_exp.to(self.device) + self.gamma*q_exp_target*~done_exp.to(self.device))
+                loss_ep += loss.cpu().detach().numpy()
                 # compute gradient of loss
                 self.model.train()
                 self.optimizer.zero_grad()
@@ -187,7 +197,7 @@ class DQL:
             # Randomly generate a value between [0,1] with a uniform distribution
             if np.random.uniform(0, 1) < epsilon:
                 # Select random action
-                a = np.random.randint(0, self.env.action_space.n)
+                a = torch.tensor(np.random.randint(0, self.env.action_space.n), dtype=torch.int64)
             else:
                 # Select most probable action
                 a = argmax(q_values)
