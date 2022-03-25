@@ -136,12 +136,13 @@ class DQL:
                     s_next = self.env.render(mode='rgb_array')
                 # add to replay buffer
                 self.rb.append((s, a, r, s_next, done))
-                # draw from replay buffer
-                if self.use_rb and len(self.rb) < self.batch_size:  # to fill the replay buffer before starting training
+                # to fill the replay buffer before starting training
+                if self.use_rb and len(self.rb) < self.batch_size:
                     continue
                 elif not training_started:
                     training_started = True
                     print("Training started")
+                # draw batch from replay buffer
                 sampled_exp = np.array(self.rb, dtype=object)[np.random.choice(len(self.rb), size=self.batch_size)]
                 s_exp = torch.tensor(np.array([sample[0] for sample in sampled_exp]))
                 a_exp = [sample[1] for sample in sampled_exp]
@@ -158,6 +159,8 @@ class DQL:
                 self.model.train()
                 self.optimizer.zero_grad()
                 loss.backward()
+                for param in self.model.parameters():
+                    param.grad.data.clamp_(-1, 1)
                 self.optimizer.step()
                 if self.n_timesteps is not None and ts_ep == self.n_timesteps:
                     break
@@ -177,9 +180,12 @@ class DQL:
         if self.policy == "egreedy":
             if self.epsilon is None:
                 raise KeyError("Provide an epsilon")
-                
+
+            # annealing of epsilon
+            if self.epsilon.__class__.__name__ == "tuple":
+                epsilon = self.epsilon[1] + (self.epsilon[0] - self.epsilon[1]) * np.exp(-1. * t / self.epsilon[2])
             # Randomly generate a value between [0,1] with a uniform distribution
-            if np.random.uniform(0, 1) < self.epsilon:
+            if np.random.uniform(0, 1) < epsilon:
                 # Select random action
                 a = np.random.randint(0, self.env.action_space.n)
             else:
