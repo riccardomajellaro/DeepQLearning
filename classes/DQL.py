@@ -156,12 +156,10 @@ class DQL:
     def episode(self, ep):
         if self.use_rb and ep == 0:
             print("Filling replay buffer before training...")
-
         # Initialize starting state
         s = self.env.reset()
         if self.input_is_img:
             s = self.collect_frames()
-
         # Iterate over timesteps
         loss_ep = 0
         ts_ep = 0
@@ -225,7 +223,7 @@ class DQL:
 
             # annealing of epsilon
             if self.epsilon.__class__.__name__ == "tuple":  # exponential annealing
-                epsilon = self.epsilon[1] + (self.epsilon[0] - self.epsilon[1]) * np.exp(-1. * self.ts_tot / self.epsilon[2])
+                epsilon = self.epsilon[0] + (self.epsilon[1] - self.epsilon[0]) * np.exp(-1. * self.ts_tot / self.epsilon[2])
             else:  # no annealing
                 epsilon = self.epsilon
             # Randomly generate a value between [0,1] with a uniform distribution
