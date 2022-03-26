@@ -1,5 +1,7 @@
 from torch import nn
 
+from Utilities import softmax
+
 
 class NN(nn.Module):
     """ Generic NN model
@@ -30,10 +32,10 @@ class NN(nn.Module):
             nn.Linear(neurons_per_layer, output_dim)
         )
 
-    def forward(self, x, device):
+    def forward(self, x):
         """ Forward pass through network
         """
-        x = x.to(device)
+        x = x
         x = self.hidden_layers(x)
         x = self.output_layer(x)
         return x
@@ -48,18 +50,19 @@ class MLP(NN):
         
         # Create hidden layers
         self.hidden_layers = nn.Sequential(
-            nn.Linear(input_dim, 32),
+            nn.Linear(input_dim, 256),
+            # nn.BatchNorm1d(128),
+            nn.ReLU(),
+            # nn.Linear(256, 256),
+            # nn.BatchNorm1d(64),
+            # nn.Tanh(),
+            # nn.Linear(64, 32),
             # nn.BatchNorm1d(32),
-            nn.Tanh(),
-            nn.Linear(32, 64),
-            # nn.Dropout(0.4),
-            nn.Tanh(),
-            nn.Linear(64, 32),
-            # nn.Dropout(0.2),
-            nn.Tanh()
+            # nn.Tanh()
         )
 
         # Create output layer
         self.output_layer = nn.Sequential(
-            nn.Linear(32, output_dim)
+            nn.Linear(256, output_dim),
+            # nn.Softmax()
         )

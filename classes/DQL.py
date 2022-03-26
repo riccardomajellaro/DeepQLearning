@@ -41,6 +41,7 @@ class DQL:
             target_model = False,
             tm_wait = 10,
             input_is_img = False,
+            custom_reward = False,
             env = None,
             render = False,
             device = None
@@ -48,6 +49,11 @@ class DQL:
         self.env = env
         if self.env is None:
             exit("Please select an environment")
+        if device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device = device
+        print(f"Computing on {self.device} device")
         self.batch_size = batch_size
         self.use_rb = use_rb
         self.rb_size = rb_size
@@ -55,17 +61,12 @@ class DQL:
         self.n_timesteps = n_timesteps
         self.policy = policy
         # tensor of total count for every possible action
-        self.actions_count = torch.tensor([1]*self.env.action_space.n, dtype=torch.float64)
+        self.actions_count = torch.tensor([1]*self.env.action_space.n, dtype=torch.float64, device=self.device)
         # tensor of total reward for every possible action
-        self.actions_reward = torch.tensor([0]*self.env.action_space.n, dtype=torch.float64)
+        self.actions_reward = torch.tensor([0]*self.env.action_space.n, dtype=torch.float64, device=self.device)
         self.epsilon = epsilon
         self.temp = temp
         self.gamma = gamma
-        if device is None:
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        else:
-            self.device = device
-        print(f"Computing on {self.device} device")
         self.model = model.to(self.device)
         # create an identical separated model updated as self.model each episode
         if target_model:
@@ -81,92 +82,19 @@ class DQL:
         self.optimizer = optimizer
         if self.optimizer is None:
             exit("Please select an optimization algorithm")
+        self.custom_reward = custom_reward
         self.input_is_img = input_is_img
         self.render = render
-
-    def update_target(self):
-        self.target_model.load_state_dict(self.model.state_dict())
 
     def __call__(self):
         # Create replay buffer
         self.rb = deque([], maxlen=self.rb_size)
 
         # Iterate over episodes
-        training_started = False
-        ts_tot = 0
+        self.training_started = False
+        self.ts_tot = 0
         for ep in range(self.n_episodes):
-            if self.use_rb and ep == 0:
-                print("Filling replay buffer before training...")
-            # Initialize sequence s1 = {x1} and preprocess f1 = f(s1)
-            s = self.env.reset()
-            # Control if we are using images as input of the model instead of observations
-            if self.input_is_img:
-                # TODO: add normalization. 
-                # (also flattening is needed for DNN)
-                # but it can be done in the model when creating it which is better
-                s = self.env.render(mode='rgb_array')
-            
-            # Iterate over timesteps
-            loss_ep = 0
-            ts_ep = 0
-            r_ep = 0
-            done = False
-            while not done:
-                if self.target_model != self.model and ts_tot % self.tm_wait:
-                    # update target model weigths as current self.model weights
-                    self.update_target()
-                ts_tot, ts_ep = ts_tot + 1, ts_ep + 1
-                # Select random action with probability epsilon or follow egreedy policy
-                a = self.select_action(self.model.forward(torch.tensor(s), self.device), ts_tot)
-                if self.render:
-                    self.env.render()
-                # Execute action a_t in emulator and observe reward rt and image x_t+1
-                s_next, r, done, _ = self.env.step(a.item())
-                r_ep += r
-                self.actions_reward[a] += r
-                # Save step in replay buffer
-                if self.input_is_img:
-                    s_next = self.env.render(mode='rgb_array')
-                # add to replay buffer
-                self.rb.append((s, a, r, s_next, done))
-                # to fill the replay buffer before starting training
-                if self.use_rb and len(self.rb) < self.batch_size:
-                    continue
-                elif not training_started:
-                    training_started = True
-                    print("Training started")
-                # draw batch from replay buffer
-                # samples_indexes = np.random.choice(len(self.rb), size=self.batch_size)
-                # print(self.rb)
-                # sampled_exp = torch.tensor(self.rb)[samples_indexes]
-                sampled_exp = random.sample(self.rb, k=self.batch_size)
-                s_exp = torch.tensor(np.array([sample[0] for sample in sampled_exp]))
-                a_exp = [sample[1] for sample in sampled_exp]
-                done_exp = torch.tensor([sample[4] for sample in sampled_exp])
-                r_exp = torch.tensor([sample[2] if not done_exp[i] else 0 for i, sample in enumerate(sampled_exp)])
-                s_next_exp = torch.tensor(np.array([sample[3] for sample in sampled_exp]))
-                # compute q values for target and current using dnn
-                q_exp = self.model.forward(s_exp, self.device)[np.arange(len(a_exp)), a_exp]
-                q_exp_target = torch.max(self.target_model.forward(s_next_exp, self.device), axis=1)[0].detach()
-                # compute mean loss of the batch
-                loss = self.loss(q_exp, r_exp.to(self.device) + self.gamma*q_exp_target*~done_exp.to(self.device))
-                loss_ep += loss.cpu().detach().numpy()
-                # compute gradient of loss
-                self.model.train()
-                self.optimizer.zero_grad()
-                loss.backward()
-                # clip gradients in (-1, 1)
-                # for param in self.model.parameters():
-                #     param.grad.data.clamp_(-1, 1)
-                self.optimizer.step()
-                # set current state as next_state
-                s = s_next
-                # if a maximum number of timesteps is set, check it
-                if self.n_timesteps is not None and ts_ep == self.n_timesteps:
-                    break
-            
-            if not ((ep+1) % 100):
-                print(f"[{ep+1}] Episode mean loss: {round(loss_ep/ts_ep, 4)} | Episode reward: {r_ep}")
+            self.episode(ep)
 
         # TODO: Save the model. Not only the weights,
         # unless you remeber the configuration, 
@@ -174,16 +102,114 @@ class DQL:
 
         self.env.close()
 
-    def select_action(self, q_values, t):
-        """ Select a behaviour policy between epsilon-greedy and softmax (boltzmann)
+    def update_target(self):
+        self.target_model.load_state_dict(self.model.state_dict())
+
+    def collect_frames(self):
+        # TODO collect n frames as state (try also normalization)
+        s = self.env.render(mode='rgb_array')
+        return s
+
+    def training_step(self):
+        # draw batch of experiences from replay buffer
+        sampled_exp = random.sample(self.rb, k=self.batch_size)
+        s_exp, a_exp, r_exp, s_next_exp, done_exp = zip(*sampled_exp)
+        s_exp = torch.stack(s_exp)
+        s_next_exp = torch.stack(s_next_exp)
+        a_exp = torch.stack(a_exp)
+        r_exp = torch.stack(r_exp)
+        done_exp = torch.stack(done_exp)
+        # compute q values for current and next states using dnn
+        self.model.train()
+        q_exp = self.model.forward(s_exp).gather(1, a_exp.view(-1, 1)).view(-1)
+        q_exp_target = self.target_model.forward(s_next_exp).detach().max(1)[0]
+        # compute mean loss of the batch
+        loss = self.loss(q_exp, r_exp + self.gamma*q_exp_target*~done_exp)
+        # compute gradient of loss
+        self.optimizer.zero_grad()
+        loss.backward()
+        # clip gradients in (-1, 1)
+        # for param in self.model.parameters():
+        #     param.grad.data.clamp_(-1, 1)
+        self.optimizer.step()
+        
+        return loss.cpu().detach().numpy()
+
+    def episode(self, ep):
+        if self.use_rb and ep == 0:
+            print("Filling replay buffer before training...")
+
+        # Initialize starting state
+        s = self.env.reset()
+        if self.input_is_img:
+            s = self.collect_frames()
+
+        # Iterate over timesteps
+        loss_ep = 0
+        ts_ep = 0
+        r_ep = 0
+        done = False
+        while not done:
+            if self.target_model != self.model and self.ts_tot % self.tm_wait:
+                # update target model weigths as current self.model weights
+                self.update_target()
+            self.ts_tot, ts_ep = self.ts_tot + 1, ts_ep + 1
+            # Select action using the behaviour policy
+            a = self.select_action(s)
+            if self.render:
+                self.env.render()
+            # Execute action a in emulator and observe reward r and next state s_next
+            # The basic reward is always 1 (even if done is True)
+            s_next, r, done, _ = self.env.step(a.item())
+            if self.input_is_img:
+                s_next = self.collect_frames()
+            # TODO find a good reward strategy
+            if self.custom_reward:
+                if done: r -= 1
+                # if ts_ep < 15: r -= 5
+                # elif ts_ep < 50: r -= 3
+                # elif ts_ep < 100: r -= 1
+                # else:
+                #     r += ts_ep/100 - 1
+            r_ep += r
+            self.actions_reward[a] += r  # for ucb action selection
+            # add experience to replay buffer (as torch tensors)
+            self.rb.append((torch.tensor(s, device=self.device), a,
+                torch.tensor(r, device=self.device), 
+                torch.tensor(s_next, device=self.device),
+                torch.tensor(done, device=self.device)))
+            # set next state as the new current state
+            s = s_next
+            # to fill the replay buffer before starting training
+            if self.use_rb and len(self.rb) < self.batch_size:
+                continue
+            elif not self.training_started:
+                self.training_started = True
+                print("Training started")
+            # execute a training step on the DQN
+            loss_ep += self.training_step()
+            # if a maximum number of timesteps is set, check it
+            if self.n_timesteps is not None and ts_ep == self.n_timesteps:
+                break
+        
+        if not ((ep+1) % 100):
+            print(f"[{ep+1}] Episode mean loss: {round(loss_ep/ts_ep, 4)} | Episode reward: {r_ep} | Timesteps: {ts_ep}")
+
+    def select_action(self, s):
+        """ Select a behaviour policy between epsilon-greedy, softmax (boltzmann) and upper confidence bound
         """
+        with torch.no_grad():
+            q_values = self.model.forward(torch.tensor(s, device=self.device).unsqueeze(0))
+
         if self.policy == "egreedy":
             if self.epsilon is None:
                 raise KeyError("Provide an epsilon")
 
             # annealing of epsilon
             if self.epsilon.__class__.__name__ == "tuple":
-                epsilon = self.epsilon[1] + (self.epsilon[0] - self.epsilon[1]) * np.exp(-1. * t / self.epsilon[2])
+                epsilon = self.epsilon[1] + (self.epsilon[0] - self.epsilon[1]) * np.exp(-1. * self.ts_tot / self.epsilon[2])
+            else:
+                epsilon = self.epsilon
             # Randomly generate a value between [0,1] with a uniform distribution
             if np.random.uniform(0, 1) < epsilon:
                 # Select random action
@@ -202,11 +228,11 @@ class DQL:
 
         elif self.policy == "ucb":
             Qt = self.actions_reward / self.actions_count
-            Ut = 1.5 * torch.sqrt(torch.log(torch.tensor(t)) / self.actions_count)
+            Ut = 3 * torch.sqrt(torch.log(torch.tensor(self.ts_tot)) / self.actions_count)
             a = argmax(Qt + Ut)
             self.actions_count[a] += 1
 
         else:
             exit("Please select an existent behaviour policy")
         
-        return a
+        return a.to(self.device)
