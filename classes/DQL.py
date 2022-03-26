@@ -5,6 +5,7 @@ from copy import deepcopy
 from collections import deque
 from PIL import Image
 from Utilities import *
+from classes.Model import *
 
 
 class DQL:
@@ -71,8 +72,8 @@ class DQL:
         self.model = model.to(self.device)
         # create an identical separated model updated as self.model each episode
         if target_model:
-            self.target_model = deepcopy(self.model).to(self.device)
-            self.target_model.eval()
+            # self.target_model = deepcopy(self.model).to(self.device)
+            self.target_model = MLP(4, 2).to(self.device)
         # target_model is exactly self.model
         else:
             self.target_model = self.model
@@ -138,15 +139,16 @@ class DQL:
         # compute q values for current and next states using dnn
         self.model.train()
         q_exp = self.model.forward(s_exp).gather(1, a_exp.view(-1, 1)).view(-1)
-        q_exp_target = self.target_model.forward(s_next_exp).detach().max(1)[0]
+        with torch.no_grad():
+            q_exp_target = self.target_model.forward(s_next_exp).detach().max(1)[0]
         # compute mean loss of the batch
         loss = self.loss(q_exp, r_exp + self.gamma*q_exp_target*~done_exp)
         # compute gradient of loss
         self.optimizer.zero_grad()
         loss.backward()
         # clip gradients in (-1, 1)
-        # for param in self.model.parameters():
-        #     param.grad.data.clamp_(-1, 1)
+        for param in self.model.parameters():
+            param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
         
         return loss.cpu().detach().numpy()
