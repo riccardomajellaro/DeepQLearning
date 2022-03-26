@@ -208,7 +208,7 @@ class DQL:
             if self.n_timesteps is not None and ts_ep == self.n_timesteps:
                 break
         
-        if not ((ep+1) % 1):
+        if not ((ep+1) % (1 if self.input_is_img else 50)):
             print(f"[{ep+1}] Episode mean loss: {round(loss_ep/ts_ep, 4)} | Episode reward: {r_ep} | Timesteps: {ts_ep}")
 
     def select_action(self, s):
