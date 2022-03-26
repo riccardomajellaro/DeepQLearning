@@ -10,10 +10,10 @@ class NN(nn.Module):
         # Model architecture
         super(NN, self).__init__()
 
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.n_hidden_layers = n_hidden_layers
-        self.neurons_per_layer = neurons_per_layer
+        input_dim = input_dim
+        output_dim = output_dim
+        n_hidden_layers = n_hidden_layers
+        neurons_per_layer = neurons_per_layer
         
         # Create hidden layers
         hidden_layers = []
@@ -45,24 +45,52 @@ class MLP(NN):
         # Model architecture
         super(NN, self).__init__()
 
-        self.input_dim = input_dim
-        self.output_dim = output_dim
+        input_dim = input_dim
+        output_dim = output_dim
         
         # Create hidden layers
         self.hidden_layers = nn.Sequential(
-            nn.Linear(input_dim, 256),
-            # nn.BatchNorm1d(128),
-            nn.ReLU(),
-            # nn.Linear(256, 256),
-            # nn.BatchNorm1d(64),
-            # nn.Tanh(),
-            # nn.Linear(64, 32),
-            # nn.BatchNorm1d(32),
-            # nn.Tanh()
+            nn.Linear(input_dim, 32),
+            nn.Tanh(),
+            nn.Linear(32, 64),
+            nn.Tanh(),
+            nn.Linear(64, 32),
+            nn.Tanh()
         )
 
         # Create output layer
         self.output_layer = nn.Sequential(
-            nn.Linear(256, output_dim),
-            # nn.Softmax()
+            nn.Linear(32, output_dim),
+        )
+
+class ConvNet(NN):
+    def __init__(self, input_h, input_w, input_c, output_dim):
+        # Model architecture
+        super(NN, self).__init__()
+
+        input_h = input_h
+        input_w = input_w
+        input_c = input_c
+        output_dim = output_dim
+
+        # Create hidden layers
+        self.hidden_layers = nn.Sequential(
+            nn.Conv2d(input_c, 8, kernel_size=5, stride=2),
+            # nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(8, 16, kernel_size=5, stride=2),
+            # nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(16, 32, kernel_size=5, stride=2),
+            # nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Flatten()
+        )
+
+        # Create output layer
+        self.output_layer = nn.Sequential(
+            nn.Linear(128, output_dim),
         )

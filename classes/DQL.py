@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from copy import deepcopy
 from collections import deque
+from PIL import Image
 from Utilities import *
 
 
@@ -87,10 +88,10 @@ class DQL:
         self.render = render
 
     def __call__(self):
-        # Create replay buffer
+        # create replay buffer
         self.rb = deque([], maxlen=self.rb_size)
 
-        # Iterate over episodes
+        # iterate over episodes
         self.training_started = False
         self.ts_tot = 0
         for ep in range(self.n_episodes):
@@ -100,14 +101,29 @@ class DQL:
         # unless you remeber the configuration, 
         # because of the dynamic creation of the model
 
-        self.env.close()
-
     def update_target(self):
         self.target_model.load_state_dict(self.model.state_dict())
 
+    def preprocess_frame(self, frame, x_pos):
+        # convert RGB frame to 32bit [0,1] greyscale
+        frame = np.array(Image.fromarray(frame, "RGB").convert("L"), dtype=np.float32) / 255.0
+        # cut top and bottom parts of the image, keeping 200 pixels in H
+        # and cut width centering in the cart position, keeping 200 pixels in W
+        pix_per_unit = int(300 / 2.4)
+        pix_from_cent = int(x_pos*pix_per_unit)
+        return frame[-250:-50, 300+pix_from_cent-100:300+pix_from_cent+100]
+
     def collect_frames(self):
-        # TODO collect n frames as state (try also normalization)
-        s = self.env.render(mode='rgb_array')
+        # collect 2 RGB frames and preprocess them
+        # s1_x and s2_x are the x coords of the cart in the two frames
+        s1 = self.env.render(mode='rgb_array')
+        s1_x = self.env.state[0]
+        s1 = self.preprocess_frame(s1, s1_x)
+        s2 = self.env.render(mode='rgb_array')
+        s2_x = self.env.state[0]
+        s2 = self.preprocess_frame(s2, s2_x)
+        # stack the frames in an array along depth and reshape to CxHxW
+        s = np.dstack((s1, s2)).transpose((2, 0, 1))
         return s
 
     def training_step(self):
@@ -166,11 +182,11 @@ class DQL:
             # TODO find a good reward strategy
             if self.custom_reward:
                 if done: r -= 1
-                # if ts_ep < 15: r -= 5
-                # elif ts_ep < 50: r -= 3
-                # elif ts_ep < 100: r -= 1
-                # else:
-                #     r += ts_ep/100 - 1
+                if ts_ep < 15: pass
+                elif ts_ep < 50: r += 1
+                elif ts_ep < 100: r += 2
+                else:
+                    r += ts_ep/100 + 2
             r_ep += r
             self.actions_reward[a] += r  # for ucb action selection
             # add experience to replay buffer (as torch tensors)
@@ -192,7 +208,7 @@ class DQL:
             if self.n_timesteps is not None and ts_ep == self.n_timesteps:
                 break
         
-        if not ((ep+1) % 100):
+        if not ((ep+1) % 1):
             print(f"[{ep+1}] Episode mean loss: {round(loss_ep/ts_ep, 4)} | Episode reward: {r_ep} | Timesteps: {ts_ep}")
 
     def select_action(self, s):
@@ -206,9 +222,9 @@ class DQL:
                 raise KeyError("Provide an epsilon")
 
             # annealing of epsilon
-            if self.epsilon.__class__.__name__ == "tuple":
+            if self.epsilon.__class__.__name__ == "tuple":  # exponential annealing
                 epsilon = self.epsilon[1] + (self.epsilon[0] - self.epsilon[1]) * np.exp(-1. * self.ts_tot / self.epsilon[2])
-            else:
+            else:  # no annealing
                 epsilon = self.epsilon
             # Randomly generate a value between [0,1] with a uniform distribution
             if np.random.uniform(0, 1) < epsilon:
