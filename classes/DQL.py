@@ -63,17 +63,16 @@ class DQL:
         self.n_timesteps = n_timesteps
         self.policy = policy
         # tensor of total count for every possible action
-        self.actions_count = torch.tensor([1]*self.env.action_space.n, dtype=torch.float64, device=self.device)
+        self.actions_count = torch.tensor([1]*self.env.action_space.n, dtype=torch.float32, device=self.device)
         # tensor of total reward for every possible action
-        self.actions_reward = torch.tensor([0]*self.env.action_space.n, dtype=torch.float64, device=self.device)
+        self.actions_reward = torch.tensor([0]*self.env.action_space.n, dtype=torch.float32, device=self.device)
         self.epsilon = epsilon
         self.temp = temp
         self.gamma = gamma
         self.model = model.to(self.device)
         # create an identical separated model updated as self.model each episode
         if target_model:
-            # self.target_model = deepcopy(self.model).to(self.device)
-            self.target_model = MLP(4, 2).to(self.device)
+            self.target_model = deepcopy(self.model).to(self.device)
         # target_model is exactly self.model
         else:
             self.target_model = self.model
@@ -127,6 +126,59 @@ class DQL:
         s = np.dstack((s1, s2)).transpose((2, 0, 1))
         return s
 
+    def self_sup_learn(self, mode=0):
+        """ Three modalities:
+            0 -> pretraining + finetuning
+            1 -> pretraining
+            2 -> finetuning
+        """
+        if mode == 2:
+            print("Loading pretrained weights from self-supervised learning")
+            # self.model.load_state_dict(torch.load("./ssl_pretrained/weights"))
+            state_dict = torch.load("./ssl_pretrained/weights.pt")
+            for name, param in state_dict.items():
+                if "output_head" in name:
+                    continue
+                self.model.load_state_dict({name: param}, strict=False)
+
+        else:  # pretraining
+            print("Self-supervised pretraining started")
+            # we use binary cross entropy as the loss function
+            loss = torch.nn.BCELoss()
+            # start self-supervised training
+            training_steps = 0
+            while True:
+                done = False
+                self.env.reset()
+                while not done:
+                    self.model.train()
+                    # collect frames and pass them through the autoencoder
+                    target = self.collect_frames()
+                    target = torch.tensor(target, device=self.device)
+                    decoded_targ = self.model.forward_ssl(target.unsqueeze(0)).squeeze(0)
+                    # compute loss and execute a training step
+                    curr_loss = loss(decoded_targ, target)
+                    optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
+                    optimizer.zero_grad()
+                    curr_loss.backward()
+                    self.optimizer.step()
+                    # do a random action
+                    _, _, done, _ = self.env.step(np.random.randint(0, 1))
+                    training_steps += 1
+                print("Loss:", curr_loss.cpu().detach().numpy())
+                if training_steps >= 2500:
+                    break
+
+            # save evaluation samples
+            with torch.no_grad():
+                self.model.eval()
+                out = self.model.forward_ssl(target.unsqueeze(0)).squeeze(0)
+            Image.fromarray((np.array(target[0].cpu()*255)).astype(np.uint8)).save("og1.png")
+            Image.fromarray((np.array(out[0].cpu().detach()*255)).astype(np.uint8)).save("dec1.png")
+
+            # save model
+            torch.save(self.model.state_dict(), "./ssl_pretrained/weights.pt")
+
     def training_step(self):
         # draw batch of experiences from replay buffer
         sampled_exp = random.sample(self.rb, k=self.batch_size)
@@ -140,6 +192,7 @@ class DQL:
         self.model.train()
         q_exp = self.model.forward(s_exp).gather(1, a_exp.view(-1, 1)).view(-1)
         with torch.no_grad():
+            self.target_model.eval()
             q_exp_target = self.target_model.forward(s_next_exp).detach().max(1)[0]
         # compute mean loss of the batch
         loss = self.loss(q_exp, r_exp + self.gamma*q_exp_target*~done_exp)
@@ -147,8 +200,9 @@ class DQL:
         self.optimizer.zero_grad()
         loss.backward()
         # clip gradients in (-1, 1)
-        for param in self.model.parameters():
-            param.grad.data.clamp_(-1, 1)
+        # for param in self.model.parameters():
+        #     param.grad.data.clamp_(-1, 1)
+        # update weigths
         self.optimizer.step()
         
         return loss.cpu().detach().numpy()
@@ -215,6 +269,7 @@ class DQL:
         """ Select a behaviour policy between epsilon-greedy, softmax (boltzmann) and upper confidence bound
         """
         with torch.no_grad():
+            self.model.eval()
             q_values = self.model.forward(torch.tensor(s, device=self.device).unsqueeze(0))
 
         if self.policy == "egreedy":
