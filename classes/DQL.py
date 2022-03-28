@@ -132,6 +132,8 @@ class DQL:
         # stack the new and last frames in an array along depth and reshape to CxHxW
         if last_s is None:
             last_s = s1
+        elif s1.shape == last_s.shape:
+            s1 = last_s
         s = np.dstack((s1, last_s)).transpose((2, 0, 1))
         return s
 
@@ -164,10 +166,10 @@ class DQL:
                 while not done:
                     # collect frames and pass them through the autoencoder
                     target = self.collect_frame(target[0])
-                    target = torch.tensor(target, device=self.device)
-                    decoded_targ = self.model.forward_ssl(target.unsqueeze(0)).squeeze(0)
+                    target_tens = torch.tensor(target, device=self.device)
+                    decoded_targ = self.model.forward_ssl(target_tens.unsqueeze(0)).squeeze(0)
                     # compute loss and execute a training step
-                    curr_loss = loss(decoded_targ, target)
+                    curr_loss = loss(decoded_targ, target_tens)
                     optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
                     optimizer.zero_grad()
                     curr_loss.backward()
@@ -182,9 +184,11 @@ class DQL:
             # save evaluation samples
             with torch.no_grad():
                 self.model.eval()
-                out = self.model.forward_ssl(target.unsqueeze(0)).squeeze(0)
-            Image.fromarray((np.array(target[0].cpu()*255)).astype(np.uint8)).save("og1.png")
-            Image.fromarray((np.array(out[0].cpu().detach()*255)).astype(np.uint8)).save("dec1.png")
+                out = self.model.forward_ssl(target_tens.unsqueeze(0)).squeeze(0)
+            Image.fromarray((np.array(target_tens[0].cpu()*255)).astype(np.uint8)).save("./ssl_pretrained/og1.png")
+            Image.fromarray((np.array(target_tens[1].cpu()*255)).astype(np.uint8)).save("./ssl_pretrained/og2.png")
+            Image.fromarray((np.array(out[0].cpu().detach()*255)).astype(np.uint8)).save("./ssl_pretrained/dec1.png")
+            Image.fromarray((np.array(out[1].cpu().detach()*255)).astype(np.uint8)).save("./ssl_pretrained/dec2.png")
 
             # save model
             torch.save(self.model.state_dict(), "./ssl_pretrained/weights.pt")
@@ -295,7 +299,7 @@ class DQL:
             # Execute action a in emulator and observe reward r and next state s_next
             # The basic reward is always 1 (even if done is True)
             s_next, r, done, _ = self.env.step(a.item())
-            if self.input_is_img:
+            if self.input_is_img and not done:
                 s_next = self.collect_frame(s[0])
             # TODO change from using self.policy values to other variable
             if self.policy == 'novelty-based':

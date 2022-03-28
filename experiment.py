@@ -5,7 +5,7 @@ from classes.Model import *
 from Utilities import argmax
 
 use_img = True
-ssl_mode = 2  # 0: pretrain+finetune, 1: pretrain, 2: finetune, None: no ssl
+ssl_mode = 1  # None: no ssl, 0: pretrain+finetune, 1: pretrain, 2: finetune
 evaluate = True
 
 env = gym.make('CartPole-v1')
@@ -15,9 +15,9 @@ env = gym.make('CartPole-v1')
 # net = ConvNet(2, 2)
 net = SSLConvNet(2, 2)
 
-# loss = torch.nn.SmoothL1Loss()
+loss = torch.nn.SmoothL1Loss()
 # loss = torch.nn.L1Loss()
-loss = torch.nn.MSELoss()
+# loss = torch.nn.MSELoss()
 
 # optimizer = torch.optim.SGD(net.parameters(), lr=1e-2)
 optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)  #, weight_decay=1e-2)
