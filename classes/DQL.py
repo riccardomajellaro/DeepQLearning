@@ -35,10 +35,13 @@ class DQL:
             n_timesteps = None,
             loss=None,
             optimizer=None,
+            gamma = 1,
             policy = "egreedy",
             epsilon = None,
             temp = None,
-            gamma = 1,
+            k = None,
+            beta = None,
+            eta = None,
             model = None,
             target_model = False,
             tm_wait = 10,
@@ -61,6 +64,7 @@ class DQL:
         self.rb_size = rb_size
         self.n_episodes = n_episodes
         self.n_timesteps = n_timesteps
+        self.gamma = gamma
         self.policy = policy
         # tensor of total count for every possible action
         self.actions_count = torch.tensor([1]*self.env.action_space.n, dtype=torch.float32, device=self.device)
@@ -68,7 +72,12 @@ class DQL:
         self.actions_reward = torch.tensor([0]*self.env.action_space.n, dtype=torch.float32, device=self.device)
         self.epsilon = epsilon
         self.temp = temp
-        self.gamma = gamma
+        self.k = k
+        self.beta = beta
+        self.eta = eta
+        self.state_hash = {} # used to track how many times a state s is reaced (in case of novelty based approach)
+        self.simhash_mat = None
+        self.ICM = None
         self.model = model.to(self.device)
         # create an identical separated model updated as self.model each episode
         if target_model:
@@ -183,6 +192,47 @@ class DQL:
             for param in self.model.decoder.parameters():
                 param.requires_grad = False
 
+    def novelty_exploration(self, s):
+        state_hash_key = str(list(np.sign(self.simhash_mat.dot(s))))
+        if state_hash_key in self.state_hash.keys():
+            self.state_hash[state_hash_key] += 1
+        else:
+            self.state_hash[state_hash_key] = 1
+        return self.beta / np.sqrt(self.state_hash[state_hash_key])
+
+    def curiosity_exploration(self, s, a, s_next):
+        # train inverse model and freeze the forward model
+        self.ICM.train()
+        for param in self.ICM.feature_output.parameters():
+            param.requires_grad = False
+        for param in self.ICM.encoder.parameters():
+            param.requires_grad = True
+        for param in self.ICM.action_output.parameters():
+            param.requires_grad = True
+        # obtain the features fi(s) and predicted a
+        s = torch.tensor(s, device=self.device).unsqueeze(0)
+        feature_s, feature_s_next, a_pred = self.ICM.forward_inverse(s, s_next) 
+        loss1 = nn.CrossEntropyLoss()
+        self.optimizer.zero_grad()
+        loss1(a_pred, a).backward()
+        self.optimizer.step()
+        # train the forward model and freeze inverse model
+        for param in self.ICM.feature_output.parameters():
+            param.requires_grad = True
+        for param in self.ICM.encoder.parameters():
+            param.requires_grad = False
+        for param in self.ICM.action_output.parameters():
+            param.requires_grad = False
+        # getting the predicted s_next from the concatenation between the features fi(s) and a
+        feature_s_forward = self.ICM.forward_feature(feature_s, a)
+        loss2 = self.ICM.loss_feature(feature_s_forward, feature_s_next)
+        self.optimizer.zero_grad()
+        loss2.backward()
+        self.optimizer.step()
+
+        # return the intrinsic reward
+        return self.eta * loss2.item() 
+
     def training_step(self):
         # draw batch of experiences from replay buffer
         sampled_exp = random.sample(self.rb, k=self.batch_size)
@@ -214,11 +264,20 @@ class DQL:
     def episode(self, ep):
         if self.use_rb and ep == 0:
             print("Filling replay buffer before training...")
-        # Initialize starting state
+        # initialize starting state
         s = self.env.reset()
         if self.input_is_img:
             s = self.collect_frames()
-        # Iterate over timesteps
+
+        # TODO change from using self.policy values to other variable
+        if self.policy == 'novelty-based' and self.simhash_mat == None:
+            dim = list(s.shape)
+            dim.insert(0, self.k)
+            self.simhash_mat = np.random.normal(0,1, tuple(dim))
+        elif self.policy == 'curiosity-based' and self.ICM == None:
+            self.ICM = ICM(s.shape[0], self.env.action_space.n)
+
+        # iterate over timesteps
         loss_ep = 0
         ts_ep = 0
         r_ep = 0
@@ -237,7 +296,12 @@ class DQL:
             s_next, r, done, _ = self.env.step(a.item())
             if self.input_is_img:
                 s_next = self.collect_frames()
-            # TODO find a good reward strategy
+            # TODO change from using self.policy values to other variable
+            if self.policy == 'novelty-based':
+                r += self.novelty_exploration(s)
+            elif self.policy == 'curiosity-based':
+                r += self.curiosity_exploration(s, a, s_next)
+            # apply custom reward strategy
             if self.custom_reward:
                 if done: r -= 1
                 if ts_ep < 15: pass

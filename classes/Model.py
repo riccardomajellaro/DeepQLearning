@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 
@@ -152,3 +153,58 @@ class SSLConvNet(NN):
         latent_vector = self.encoder(x)
         output = self.output_head(latent_vector)
         return output
+
+
+class ICM(NN):
+    def __init__(self, input_c, output_dim):    
+        super(NN, self).__init__()
+
+        self.encoder = nn.Sequential(
+            nn.Conv2d(input_c, 32, kernel_size=5, stride=2),
+            nn.BatchNorm2d(32),
+            # nn.Dropout(0.5),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(32, 32, kernel_size=5, stride=2),
+            nn.BatchNorm2d(32),
+            # nn.Dropout(0.2),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(32, 64, kernel_size=5, stride=2),
+            nn.BatchNorm2d(64),
+            # nn.Dropout(0.2),
+            nn.ReLU(),
+            nn.Flatten()  # latent vector
+        )
+        
+        self.action_output = nn.Sequential(
+            nn.Linear(1024, 256),
+            nn.ReLU(),
+            nn.Linear(256, 16),
+            nn.ReLU(),
+            nn.Linear(16, output_dim),
+            nn.Softmax()
+        )
+
+        self.feature_output = nn.Sequential(
+            nn.Linear(1024 + output_dim, 512),
+            nn.Linear(512, 1024)
+        )
+    
+    def forward_inverse(self, x1, x2):
+        """ Forward pass through network
+        """
+        x1 = self.encoder(x1)
+        x2 = self.encoder(x2)
+        #concatenate x1 and x2 into a single vector
+        x = self.action_output(torch.cat((x1,x2)))
+        return x1, x2, x #returns feature vector (s_t) and predicted action a
+
+    def forward_feature(self, x, a):
+        """x must be the concatenation between feature vector (s_t)
+           and action a
+        """
+        return self.feature_output(torch.cat((x, a)))
+
+    def loss_feature(self, x, y):
+        return torch.pow(torch.norm(y - x, p=2), 2) / 2
