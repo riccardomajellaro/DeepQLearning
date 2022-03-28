@@ -185,10 +185,10 @@ class DQL:
             with torch.no_grad():
                 self.model.eval()
                 out = self.model.forward_ssl(target_tens.unsqueeze(0)).squeeze(0)
-            Image.fromarray((np.array(target_tens[0].cpu()*255)).astype(np.uint8)).save("./ssl_pretrained/og1.png")
-            Image.fromarray((np.array(target_tens[1].cpu()*255)).astype(np.uint8)).save("./ssl_pretrained/og2.png")
-            Image.fromarray((np.array(out[0].cpu().detach()*255)).astype(np.uint8)).save("./ssl_pretrained/dec1.png")
-            Image.fromarray((np.array(out[1].cpu().detach()*255)).astype(np.uint8)).save("./ssl_pretrained/dec2.png")
+            Image.fromarray((np.array(target_tens[0].cpu()*255)).astype(np.uint8)).save("./ssl_results/og1.png")
+            Image.fromarray((np.array(target_tens[1].cpu()*255)).astype(np.uint8)).save("./ssl_results/og2.png")
+            Image.fromarray((np.array(out[0].cpu().detach()*255)).astype(np.uint8)).save("./ssl_results/dec1.png")
+            Image.fromarray((np.array(out[1].cpu().detach()*255)).astype(np.uint8)).save("./ssl_results/dec2.png")
 
             # save model
             torch.save(self.model.state_dict(), "./ssl_pretrained/weights.pt")
