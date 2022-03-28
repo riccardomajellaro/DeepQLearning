@@ -12,8 +12,8 @@ env = gym.make('CartPole-v1')
 
 # net = NN(4, 2, 1, 8)
 # net = MLP(4, 2)
-net = ConvNet(200, 200, 2, 2)
-# net = SSLConvNet(200, 200, 2, 2)
+# net = ConvNet(2, 2)
+net = SSLConvNet(2, 2)
 
 # loss = torch.nn.SmoothL1Loss()
 # loss = torch.nn.L1Loss()

@@ -1,5 +1,4 @@
 from torch import nn
-from Utilities import softmax
 
 
 class NN(nn.Module):
@@ -8,11 +7,6 @@ class NN(nn.Module):
     def __init__(self, input_dim, output_dim, n_hidden_layers, neurons_per_layer):
         # Model architecture
         super(NN, self).__init__()
-
-        input_dim = input_dim
-        output_dim = output_dim
-        n_hidden_layers = n_hidden_layers
-        neurons_per_layer = neurons_per_layer
         
         # Create hidden layers
         hidden_layers = []
@@ -44,9 +38,6 @@ class MLP(NN):
         # Model architecture
         super(NN, self).__init__()
         
-        input_dim = input_dim
-        output_dim = output_dim
-        
         # Create hidden layers
         self.hidden_layers = nn.Sequential(
             nn.Linear(input_dim, 32),
@@ -62,14 +53,9 @@ class MLP(NN):
 
 
 class ConvNet(NN):
-    def __init__(self, input_h, input_w, input_c, output_dim):
+    def __init__(self, input_c, output_dim):
         # Model architecture
         super(NN, self).__init__()
-
-        input_h = input_h
-        input_w = input_w
-        input_c = input_c
-        output_dim = output_dim
 
         # Create hidden layers
         self.hidden_layers = nn.Sequential(
@@ -110,14 +96,9 @@ class SSLConvNet(NN):
         forward_ssl(): used when performing self-supervised learning
         forward(): used when fine-tuning the model with deep RL
     """
-    def __init__(self, input_h, input_w, input_c, output_dim):
+    def __init__(self, input_c, output_dim):
         # Model architecture
         super(NN, self).__init__()
-
-        input_h = input_h
-        input_w = input_w
-        input_c = input_c
-        output_dim = output_dim
 
         # Create encoder layers
         self.encoder = nn.Sequential(

@@ -1,0 +1,11 @@
+loss = torch.nn.SmoothL1Loss()
+
+optimizer = torch.optim.SGD(net.parameters(), lr=1e-2)
+
+dql = DQL(
+    rb_size=10000, batch_size=128, n_episodes=10000, device="cpu",
+    loss=loss, optimizer=optimizer, gamma=0.8,
+    policy="egreedy", epsilon=(0.05, 0.9, 200), temp=0.1,
+    model=net, target_model=True, tm_wait=100,
+    custom_reward=True, env=env, render=False, input_is_img=use_img
+)

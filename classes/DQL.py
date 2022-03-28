@@ -179,6 +179,10 @@ class DQL:
             # save model
             torch.save(self.model.state_dict(), "./ssl_pretrained/weights.pt")
 
+            # freeze decoder weights
+            for param in self.model.decoder.parameters():
+                param.requires_grad = False
+
     def training_step(self):
         # draw batch of experiences from replay buffer
         sampled_exp = random.sample(self.rb, k=self.batch_size)
