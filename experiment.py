@@ -47,9 +47,10 @@ if evaluate:
     while not done:
         with torch.no_grad():
             net.eval()
-            s, _, done, _ = env.step(int(argmax(net.forward(torch.tensor(s, dtype=torch.float32, device=dql.device).unsqueeze(0)))))
+            s_next, _, done, _ = env.step(int(argmax(net.forward(torch.tensor(s, dtype=torch.float32, device=dql.device).unsqueeze(0)))))
             if use_img:
-                s = dql.collect_frame(s[0])
+                s_next = dql.collect_frame(s[0])
+            s = s_next
         env.render()
         sleep(0.1)
 
