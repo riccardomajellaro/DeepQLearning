@@ -178,7 +178,7 @@ class DQL:
                     _, _, done, _ = self.env.step(np.random.randint(0, 1))
                     training_steps += 1
                 print("Loss:", curr_loss.cpu().detach().numpy())
-                if training_steps >= 2500:
+                if training_steps >= 5000:
                     break
 
             # save evaluation samples
@@ -299,7 +299,7 @@ class DQL:
             # Execute action a in emulator and observe reward r and next state s_next
             # The basic reward is always 1 (even if done is True)
             s_next, r, done, _ = self.env.step(a.item())
-            if self.input_is_img and not done:
+            if self.input_is_img:
                 s_next = self.collect_frame(s[0])
             # TODO change from using self.policy values to other variable
             if self.policy == 'novelty-based':

@@ -5,7 +5,7 @@ from classes.Model import *
 from Utilities import argmax
 
 use_img = True
-ssl_mode = 1  # None: no ssl, 0: pretrain+finetune, 1: pretrain, 2: finetune
+ssl_mode = 2  # None: no ssl, 0: pretrain+finetune, 1: pretrain, 2: finetune
 evaluate = True
 
 env = gym.make('CartPole-v1')
