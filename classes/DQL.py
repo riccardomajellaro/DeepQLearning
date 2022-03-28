@@ -75,7 +75,8 @@ class DQL:
         self.k = k
         self.beta = beta
         self.eta = eta
-        self.state_hash = {} # used to track how many times a state s is reaced (in case of novelty based approach)
+        # used to track how many times a hashed state s is reaced (novelty based approach)
+        self.state_hash = {}
         self.simhash_mat = None
         self.ICM = None
         self.model = model.to(self.device)
@@ -122,17 +123,16 @@ class DQL:
         pix_from_cent = int(x_pos*pix_per_unit)
         return frame[-250:-50, 300+pix_from_cent-100:300+pix_from_cent+100]
 
-    def collect_frames(self):
-        # collect 2 RGB frames and preprocess them
-        # s1_x and s2_x are the x coords of the cart in the two frames
+    def collect_frame(self, last_s):
+        # collect RGB frame and preprocess it
+        # s1_x is the x coord of the cart in the frame
         s1 = self.env.render(mode='rgb_array')
         s1_x = self.env.state[0]
         s1 = self.preprocess_frame(s1, s1_x)
-        s2 = self.env.render(mode='rgb_array')
-        s2_x = self.env.state[0]
-        s2 = self.preprocess_frame(s2, s2_x)
-        # stack the frames in an array along depth and reshape to CxHxW
-        s = np.dstack((s1, s2)).transpose((2, 0, 1))
+        # stack the new and last frames in an array along depth and reshape to CxHxW
+        if last_s is None:
+            last_s = s1
+        s = np.dstack((s1, last_s)).transpose((2, 0, 1))
         return s
 
     def self_sup_learn(self, mode=0):
@@ -155,14 +155,15 @@ class DQL:
             # we use binary cross entropy as the loss function
             loss = torch.nn.BCELoss()
             # start self-supervised training
+            self.model.train()
             training_steps = 0
             while True:
                 done = False
                 self.env.reset()
+                target = self.collect_frame(None)
                 while not done:
-                    self.model.train()
                     # collect frames and pass them through the autoencoder
-                    target = self.collect_frames()
+                    target = self.collect_frame(target[0])
                     target = torch.tensor(target, device=self.device)
                     decoded_targ = self.model.forward_ssl(target.unsqueeze(0)).squeeze(0)
                     # compute loss and execute a training step
@@ -267,13 +268,13 @@ class DQL:
         # initialize starting state
         s = self.env.reset()
         if self.input_is_img:
-            s = self.collect_frames()
+            s = self.collect_frame(None)
 
         # TODO change from using self.policy values to other variable
         if self.policy == 'novelty-based' and self.simhash_mat == None:
             dim = list(s.shape)
             dim.insert(0, self.k)
-            self.simhash_mat = np.random.normal(0,1, tuple(dim))
+            self.simhash_mat = np.random.normal(0, 1, tuple(dim))
         elif self.policy == 'curiosity-based' and self.ICM == None:
             self.ICM = ICM(s.shape[0], self.env.action_space.n)
 
@@ -295,7 +296,7 @@ class DQL:
             # The basic reward is always 1 (even if done is True)
             s_next, r, done, _ = self.env.step(a.item())
             if self.input_is_img:
-                s_next = self.collect_frames()
+                s_next = self.collect_frame(s[0])
             # TODO change from using self.policy values to other variable
             if self.policy == 'novelty-based':
                 r += self.novelty_exploration(s)
