@@ -39,17 +39,17 @@ if ssl_mode is None or ssl_mode in [0, 2]:
 if evaluate:
     from time import sleep
     done = False
-    env.reset()
+    s = env.reset()
     env.render()
+    if use_img:
+        s = dql.collect_frame(None)
     input("Press enter to start the evaluation...")
     while not done:
-        if use_img:
-            s = dql.collect_frames()
-        else:
-            s = env.state
         with torch.no_grad():
             net.eval()
             s, _, done, _ = env.step(int(argmax(net.forward(torch.tensor(s, dtype=torch.float32, device=dql.device).unsqueeze(0)))))
+            if use_img:
+                s = dql.collect_frame(s[0])
         env.render()
         sleep(0.1)
 
