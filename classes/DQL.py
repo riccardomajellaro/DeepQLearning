@@ -101,6 +101,7 @@ class DQL:
         self.custom_reward = custom_reward
         self.input_is_img = input_is_img
         self.render = render
+        # Save the timesteps achieved per episode as a numpy array
         self.run_name = run_name
 
     def __call__(self):
