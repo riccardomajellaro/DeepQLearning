@@ -5,7 +5,7 @@ from classes.Model import *
 from Utilities import argmax
 
 use_img = True
-ssl_mode = 2  # None: no ssl, 0: pretrain+finetune, 1: pretrain, 2: finetune
+ssl_mode = 1  # None: no ssl, 0: pretrain+finetune, 1: pretrain, 2: finetune
 evaluate = True
 
 env = gym.make('CartPole-v1')
@@ -20,14 +20,14 @@ loss = torch.nn.SmoothL1Loss()
 # loss = torch.nn.MSELoss()
 
 # optimizer = torch.optim.SGD(net.parameters(), lr=1e-2)
-optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)  #, weight_decay=1e-2)
-# optimizer = torch.optim.RMSprop(net.parameters(), lr=1e-2)
+# optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)  #, weight_decay=1e-2)
+optimizer = torch.optim.RMSprop(net.parameters(), lr=1e-2)
 
 dql = DQL(
-    rb_size=10000, batch_size=128, n_episodes=10000, device="cuda",
-    loss=loss, optimizer=optimizer, gamma=0.99,
-    policy="egreedy", epsilon=(0.05, 0.9, 200), temp=0.1,
-    model=net, target_model=True, tm_wait=10,
+    rb_size=5000, batch_size=64, n_episodes=10000, device="cuda",
+    loss=loss, optimizer=optimizer, gamma=0.8, intr_rew="novelty-based",
+    policy="egreedy", epsilon=(0.05, 0.9, 400), temp=0.1, k=16, beta=0.2,
+    eta=0.6, model=net, target_model=True, tm_wait=100,
     custom_reward=True, env=env, render=False, input_is_img=use_img
 )
 

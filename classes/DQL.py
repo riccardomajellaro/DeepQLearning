@@ -35,6 +35,7 @@ class DQL:
             n_timesteps = None,
             loss=None,
             optimizer=None,
+            intr_rew=None,
             gamma = 1,
             policy = "egreedy",
             epsilon = None,
@@ -64,6 +65,7 @@ class DQL:
         self.rb_size = rb_size
         self.n_episodes = n_episodes
         self.n_timesteps = n_timesteps
+        self.intr_rew = intr_rew
         self.gamma = gamma
         self.policy = policy
         # tensor of total count for every possible action
@@ -216,10 +218,13 @@ class DQL:
             param.requires_grad = True
         # obtain the features fi(s) and predicted a
         s = torch.tensor(s, device=self.device).unsqueeze(0)
-        feature_s, feature_s_next, a_pred = self.ICM.forward_inverse(s, s_next) 
-        loss1 = nn.CrossEntropyLoss()
+        s_next = torch.tensor(s_next, device=self.device).unsqueeze(0)
+        feature_s, feature_s_next, a_pred = self.ICM.forward_inverse(s, s_next)
+        loss = nn.CrossEntropyLoss()
         self.optimizer.zero_grad()
-        loss1(a_pred, a).backward()
+        a = torch.tensor([a], dtype=torch.long, device=self.device)
+        loss = loss(a_pred, a)
+        loss.backward(retain_graph=True)
         self.optimizer.step()
         # train the forward model and freeze inverse model
         for param in self.ICM.feature_output.parameters():
@@ -230,13 +235,13 @@ class DQL:
             param.requires_grad = False
         # getting the predicted s_next from the concatenation between the features fi(s) and a
         feature_s_forward = self.ICM.forward_feature(feature_s, a)
-        loss2 = self.ICM.loss_feature(feature_s_forward, feature_s_next)
+        loss = self.ICM.loss_feature(feature_s_forward, feature_s_next)
         self.optimizer.zero_grad()
-        loss2.backward()
+        loss.backward()
         self.optimizer.step()
 
         # return the intrinsic reward
-        return self.eta * loss2.item() 
+        return self.eta * loss.item() 
 
     def training_step(self):
         # draw batch of experiences from replay buffer
@@ -275,12 +280,12 @@ class DQL:
             s = self.collect_frame(None)
 
         # TODO change from using self.policy values to other variable
-        if self.policy == 'novelty-based' and self.simhash_mat == None:
+        if self.intr_rew == "novelty-based" and self.simhash_mat is None:
             dim = list(s.shape)
             dim.insert(0, self.k)
             self.simhash_mat = np.random.normal(0, 1, tuple(dim))
-        elif self.policy == 'curiosity-based' and self.ICM == None:
-            self.ICM = ICM(s.shape[0], self.env.action_space.n)
+        elif self.intr_rew == "curiosity-based" and self.ICM == None:
+            self.ICM = ICM(s.shape[0], self.env.action_space.n).to(self.device)
 
         # iterate over timesteps
         loss_ep = 0
@@ -301,10 +306,10 @@ class DQL:
             s_next, r, done, _ = self.env.step(a.item())
             if self.input_is_img:
                 s_next = self.collect_frame(s[0])
-            # TODO change from using self.policy values to other variable
-            if self.policy == 'novelty-based':
+            # intrinsic reward method
+            if self.intr_rew == 'novelty-based':
                 r += self.novelty_exploration(s)
-            elif self.policy == 'curiosity-based':
+            elif self.intr_rew == 'curiosity-based':
                 r += self.curiosity_exploration(s, a, s_next)
             # apply custom reward strategy
             if self.custom_reward:
