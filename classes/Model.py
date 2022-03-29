@@ -1,12 +1,12 @@
 import torch
 from torch import nn
+from Utilities import argmax
 
 
 class NN(nn.Module):
     """ Generic NN model
     """
     def __init__(self, input_dim, output_dim, n_hidden_layers, neurons_per_layer):
-        # Model architecture
         super(NN, self).__init__()
         
         # Create hidden layers
@@ -36,10 +36,8 @@ class NN(nn.Module):
 
 class MLP(NN):
     def __init__(self, input_dim, output_dim):
-        # Model architecture
         super(NN, self).__init__()
         
-        # Create hidden layers
         self.hidden_layers = nn.Sequential(
             nn.Linear(input_dim, 32),
             nn.ReLU(),
@@ -47,18 +45,15 @@ class MLP(NN):
             nn.ReLU()
         )
 
-        # Create output layer
         self.output_layer = nn.Sequential(
             nn.Linear(32, output_dim),
         )
 
 
 class ConvNet(NN):
-    def __init__(self, input_c, output_dim):
-        # Model architecture
+    def __init__(self, input_c, output_dim, dueling=False):
         super(NN, self).__init__()
 
-        # Create hidden layers
         self.hidden_layers = nn.Sequential(
             nn.Conv2d(input_c, 8, kernel_size=5, stride=2),
             # nn.BatchNorm2d(8),
@@ -75,10 +70,22 @@ class ConvNet(NN):
             nn.Flatten()
         )
 
-        # Create output layer
+        self.v_output = nn.Sequential(
+            nn.Linear(128, 1),
+        )
+
         self.output_layer = nn.Sequential(
             nn.Linear(128, output_dim),
         )
+
+        if dueling:
+            self.forward = self.forward_dueling
+    
+    def forward_dueling(self, x):
+        features = self.hidden_layers(x)
+        q_values = self.output_layer(features)
+        v_value = self.v_output(features)
+        return v_value + (q_values - torch.sum(q_values) / q_values.shape[-1])
 
 
 class SSLConvNet(NN):
@@ -97,53 +104,60 @@ class SSLConvNet(NN):
         forward_ssl(): used when performing self-supervised learning
         forward(): used when fine-tuning the model with deep RL
     """
-    def __init__(self, input_c, output_dim):
-        # Model architecture
+    def __init__(self, input_c, output_dim, dueling=False):
         super(NN, self).__init__()
 
-        # Create encoder layers
         self.encoder = nn.Sequential(
-            nn.Conv2d(input_c, 32, kernel_size=5, stride=2),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(input_c, 16, kernel_size=5, stride=2),
+            nn.Conv2d(16, 16, kernel_size=5, stride=2),
+            nn.BatchNorm2d(16),
             # nn.Dropout(0.5),
-            nn.ReLU(),
+            # nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(32, 32, kernel_size=5, stride=2),
+            nn.Conv2d(16, 32, kernel_size=3, stride=2),
             nn.BatchNorm2d(32),
             # nn.Dropout(0.2),
-            nn.ReLU(),
+            # nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(32, 64, kernel_size=5, stride=2),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2),
             nn.BatchNorm2d(64),
             # nn.Dropout(0.2),
             nn.ReLU(),  # latent vector (not flattened)
         )
         
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(64, 32, kernel_size=3, stride=3),
-            nn.ConvTranspose2d(32, 16, kernel_size=3, stride=2),
+            nn.ConvTranspose2d(64, 32, kernel_size=5, stride=3),
+            nn.ConvTranspose2d(32, 16, kernel_size=4, stride=3),
             nn.ConvTranspose2d(16, 8, kernel_size=2, stride=2),
             nn.ConvTranspose2d(8, 4, kernel_size=2, stride=2),
             nn.ConvTranspose2d(4, 2, kernel_size=2, stride=2),
             nn.Sigmoid()
         )
 
-        # Create output layer
         self.output_head = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(1024, 256),
-            nn.ReLU(),
             nn.Linear(256, 16),
-            nn.ReLU(),
+            # nn.ReLU(),
             nn.Linear(16, output_dim),
         )
+
+        self.v_output = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(256, 1),
+        )
+
+        if dueling:
+            self.forward = self.forward_dueling
 
     def forward_ssl(self, x):
         """ Self-supervised learning forward pass
             thorugh encoder and decoder
         """
         latent_vector = self.encoder(x)
+        # print(latent_vector.shape)
         decoded_vector = self.decoder(latent_vector)
+        # print(decoded_vector.shape)
+        # exit()
         return decoded_vector
 
     def forward(self, x):
@@ -153,6 +167,12 @@ class SSLConvNet(NN):
         latent_vector = self.encoder(x)
         output = self.output_head(latent_vector)
         return output
+
+    def forward_dueling(self, x):
+        latent_vector = self.encoder(x)
+        q_values = self.output_head(latent_vector)
+        v_value = self.v_output(latent_vector)
+        return v_value + (q_values - torch.sum(q_values) / q_values.shape[-1])
 
 
 class ICM(NN):
@@ -178,16 +198,16 @@ class ICM(NN):
         )
         
         self.action_output = nn.Sequential(
-            nn.Linear(1024, 256),
+            nn.Linear(2048, 256),
             nn.ReLU(),
             nn.Linear(256, 16),
             nn.ReLU(),
             nn.Linear(16, output_dim),
-            nn.Softmax()
+            nn.Softmax(dim=1)
         )
 
         self.feature_output = nn.Sequential(
-            nn.Linear(1024 + output_dim, 512),
+            nn.Linear(1024 + 1, 512),
             nn.Linear(512, 1024)
         )
     
@@ -197,14 +217,14 @@ class ICM(NN):
         x1 = self.encoder(x1)
         x2 = self.encoder(x2)
         #concatenate x1 and x2 into a single vector
-        x = self.action_output(torch.cat((x1,x2)))
-        return x1, x2, x #returns feature vector (s_t) and predicted action a
+        x = self.action_output(torch.cat((x1,x2), dim=1))
+        return x1, x2, x  # returns feature vector (s_t) and predicted action a
 
     def forward_feature(self, x, a):
         """x must be the concatenation between feature vector (s_t)
            and action a
         """
-        return self.feature_output(torch.cat((x, a)))
+        return self.feature_output(torch.cat((x, a.unsqueeze(0)), dim=1))
 
     def loss_feature(self, x, y):
         return torch.pow(torch.norm(y - x, p=2), 2) / 2

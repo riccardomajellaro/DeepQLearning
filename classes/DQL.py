@@ -46,6 +46,7 @@ class DQL:
             model = None,
             target_model = False,
             tm_wait = 10,
+            double_dql = False,
             input_is_img = False,
             custom_reward = False,
             env = None,
@@ -89,6 +90,7 @@ class DQL:
         else:
             self.target_model = self.model
         self.tm_wait = tm_wait
+        self.double_dql = double_dql
         self.loss = loss
         if self.loss is None:
             exit("Please select a loss")
@@ -256,8 +258,13 @@ class DQL:
         self.model.train()
         q_exp = self.model.forward(s_exp).gather(1, a_exp.view(-1, 1)).view(-1)
         with torch.no_grad():
+            self.model.eval()
             self.target_model.eval()
-            q_exp_target = self.target_model.forward(s_next_exp).detach().max(1)[0]
+            if self.double_dql:
+                a_exp_target = self.model.forward(s_next_exp).detach().argmax(dim=1)
+                q_exp_target = self.target_model.forward(s_next_exp).detach().gather(1, a_exp_target.view(-1, 1)).view(-1)
+            else:
+                q_exp_target = self.target_model.forward(s_next_exp).detach().max(1)[0]
         # compute mean loss of the batch
         loss = self.loss(q_exp, r_exp + self.gamma*q_exp_target*~done_exp)
         # compute gradient of loss
@@ -293,7 +300,7 @@ class DQL:
         r_ep = 0
         done = False
         while not done:
-            if self.target_model != self.model and self.ts_tot % self.tm_wait:
+            if self.target_model != self.model and (self.ts_tot % self.tm_wait) == 0:
                 # update target model weigths as current self.model weights
                 self.update_target()
             self.ts_tot, ts_ep = self.ts_tot + 1, ts_ep + 1
