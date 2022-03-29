@@ -1,11 +1,10 @@
+NO IMAGES (DOUBLE DQL)
 loss = torch.nn.SmoothL1Loss()
-
-optimizer = torch.optim.SGD(net.parameters(), lr=1e-2)
-
+optimizer = torch.optim.RMSprop(net.parameters(), lr=1e-2)
 dql = DQL(
-    rb_size=10000, batch_size=128, n_episodes=10000, device="cpu",
-    loss=loss, optimizer=optimizer, gamma=0.8,
-    policy="egreedy", epsilon=(0.05, 0.9, 200), temp=0.1,
-    model=net, target_model=True, tm_wait=100,
+    rb_size=10000, batch_size=128, n_episodes=3000, device="cuda",
+    loss=loss, optimizer=optimizer, gamma=0.99, intr_rew="novelty-based",
+    policy="egreedy", epsilon=(0.05, 0.9, 200), temp=0.1, k=16, beta=0.2,
+    eta=0.6, model=net, target_model=True, tm_wait=10, double_dql=True,
     custom_reward=True, env=env, render=False, input_is_img=use_img
 )

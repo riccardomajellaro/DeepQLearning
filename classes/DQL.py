@@ -108,8 +108,12 @@ class DQL:
         # iterate over episodes
         self.training_started = False
         self.ts_tot = 0
+        best_ts_ep = 0
         for ep in range(self.n_episodes):
-            self.episode(ep)
+            ts_ep = self.episode(ep)
+            if ts_ep > best_ts_ep:
+                print("New max number of episode steps:", best_ts_ep)
+                best_ts_ep = ts_ep
 
         # TODO: Save the model. Not only the weights,
         # unless you remeber the configuration, 
@@ -347,8 +351,10 @@ class DQL:
             if self.n_timesteps is not None and ts_ep == self.n_timesteps:
                 break
         
-        if not ((ep+1) % (1 if self.input_is_img else 50)):
+        if not ((ep+1) % (5 if self.input_is_img else 50)):
             print(f"[{ep+1}] Episode mean loss: {round(loss_ep/ts_ep, 4)} | Episode reward: {r_ep} | Timesteps: {ts_ep}")
+        
+        return ts_ep
 
     def select_action(self, s):
         """ Select a behaviour policy between epsilon-greedy, softmax (boltzmann) and upper confidence bound
