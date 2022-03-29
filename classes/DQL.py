@@ -51,7 +51,8 @@ class DQL:
             custom_reward = False,
             env = None,
             render = False,
-            device = None
+            device = None,
+            run_name = None
         ):
         self.env = env
         if self.env is None:
@@ -100,6 +101,7 @@ class DQL:
         self.custom_reward = custom_reward
         self.input_is_img = input_is_img
         self.render = render
+        self.run_name = run_name
 
     def __call__(self):
         # create replay buffer
@@ -109,11 +111,15 @@ class DQL:
         self.training_started = False
         self.ts_tot = 0
         best_ts_ep = 0
+        ep_tms = []
         for ep in range(self.n_episodes):
-            ts_ep = self.episode(ep)
-            if ts_ep > best_ts_ep:
+            ep_tms.append(self.episode(ep))
+            if ep_tms[-1] > best_ts_ep:
                 print("New max number of episode steps:", best_ts_ep)
-                best_ts_ep = ts_ep
+                best_ts_ep = ep_tms[-1]
+        # Probably fix name
+        if self.run_name != None:
+            np.save(self.run_name,ep_tms)
 
         # TODO: Save the model. Not only the weights,
         # unless you remeber the configuration, 
