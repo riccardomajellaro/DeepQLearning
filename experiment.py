@@ -32,7 +32,7 @@ def main():
     parser.add_argument('-custom_reward', action='store_true')
     parser.add_argument('-intr_rew', action='store', type=str, default=None)
     parser.add_argument('-policy', action='store', type=str, default=None)
-        # Remember to pass epsilon values as floats
+        # Remember to pass epsilon values as floats cause parser is stupid..
     parser.add_argument('-epsilon', action='store', type=float, 
                         nargs="+", default=[0.02, 0.99, 200.])
     parser.add_argument('-temp', action='store', type=float, default=0.1)
@@ -99,7 +99,7 @@ def main():
     dql = DQL(
         rb_size=args.rb_size, batch_size=batch_size, n_episodes=args.n_episodes, 
         device=args.device, loss=loss, optimizer=optimizer, gamma=args.gamma, 
-        policy=args.policy, epsilon=(0.05, 0.9, 200), temp=args.temp, k=args.k, beta=args.beta,
+        policy=args.policy, epsilon=epsilon, temp=args.temp, k=args.k, beta=args.beta,
         eta=0.6, model=net, target_model=args.target_model, tm_wait=args.tm_wait, 
         double_dql=args.double_dql, intr_rew=args.intr_rew, custom_reward=args.custom_reward, 
         env=env, input_is_img=use_img, render=args.render, 
