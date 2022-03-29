@@ -93,7 +93,7 @@ def main():
     print(f"epsilon: {epsilon}")
 
     # Run name + directory
-    run_name = None if args.run_name == None else "array_results/"+run_name
+    run_name = None if args.run_name == None else "array_results/"+args.run_name
 
     # TODO add assert statements for not allowing some configs together
     dql = DQL(
