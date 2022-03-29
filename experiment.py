@@ -9,6 +9,7 @@ use_img = False
 if not use_img: ssl_mode = None
 else: ssl_mode = None  # None: no ssl, 0: pretrain+finetune, 1: pretrain, 2: finetune
 evaluate = False
+run_name = None # None: does not save run timesteps per episode results as np.array.
 
 env = gym.make('CartPole-v1')
 
@@ -33,7 +34,7 @@ dql = DQL(
     policy="egreedy", epsilon=(0.05, 0.9, 200), temp=0.1, k=16, beta=0.2,
     eta=0.6, model=net, target_model=True, tm_wait=10, double_dql=True,
     custom_reward=True, env=env, render=False, input_is_img=use_img,
-    run_name=None
+    run_name=run_name
 )
 
 if ssl_mode is not None:
