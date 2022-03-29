@@ -53,7 +53,7 @@ def main():
     render bool
     """
     args = parser.parse_args()
-    print("arguments passed:",args)
+    #print("arguments passed:",args)
 
     env = gym.make('CartPole-v1')
 
@@ -90,7 +90,6 @@ def main():
     if len(args.epsilon) > 1:
         epsilon = tuple(args.epsilon)
     else: epsilon = args.epsilon[0]
-    print(f"epsilon: {epsilon}")
 
     # Run name + directory
     run_name = None if args.run_name == None else "array_results/"+args.run_name
