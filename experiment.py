@@ -59,7 +59,7 @@ def main():
 
     losses = {  'mse' : torch.nn.MSELoss,
                 'l1' : torch.nn.L1Loss,
-                'smooth_l1' : torch.nn.SmoothL1Loss()
+                'smooth_l1' : torch.nn.SmoothL1Loss
             }
     optimizers = {  'adam': torch.optim.Adam,
                     'sgd': torch.optim.SGD,
