@@ -40,22 +40,12 @@ def main():
     parser.add_argument('-beta', action='store', type=float, default=0.02)
     parser.add_argument('-eta', action='store', type=float, default=0.6)
     parser.add_argument('-render', action='store_true')
-    """
-    double_dql bool
-    custom_reward bool
-    intr_rew string or none
-    policy str
-    epsilon numer or tuple (make list and convert)
-    temp float
-    k float
-    beta float
-    eta float
-    render bool
-    """
     args = parser.parse_args()
 
+    # Create gym environment
     env = gym.make('CartPole-v1')
-
+    
+    # Dictionaries used to initialize loss and optimizer
     losses = {  'mse' : torch.nn.MSELoss,
                 'l1' : torch.nn.L1Loss,
                 'smooth_l1' : torch.nn.SmoothL1Loss
@@ -64,7 +54,6 @@ def main():
                     'sgd': torch.optim.SGD,
                     'rms': torch.optim.RMSprop
                 }
-
     # Initialize model params, loss and optimizer
     use_img = args.use_img
     if not use_img: ssl_mode = None
@@ -81,8 +70,8 @@ def main():
     loss = losses[args.loss]()
     optimizer = optimizers[args.optimizer](net.parameters(), args.optim_lr)
 
-    # Extra control which also sets batch size to 1 when
-    # we don't want to use a buffer, we simply need to set rb_size = 1 .
+    # Control that the batch size is not greater than the buffer.
+    # If we set args.rb_size to 1 we get a DQN without buffer.
     batch_size = min(args.rb_size, args.batch_size)
 
     # Fix epsilon as tuple
@@ -90,7 +79,7 @@ def main():
         epsilon = tuple(args.epsilon)
     else: epsilon = args.epsilon[0]
 
-    # Run name + directory
+    # Run name + directory to save the timesteps per episode
     run_name = None if args.run_name == None else "array_results/"+args.run_name
 
     # TODO add assert statements for not allowing some configs together
@@ -103,7 +92,7 @@ def main():
         env=env, input_is_img=use_img, render=args.render, 
         run_name=run_name
     )
-
+    # Control to make sure we use ssl_mode correctly
     if ssl_mode is not None:
         dql.self_sup_learn(ssl_mode)
     if ssl_mode is None or ssl_mode in [0, 2]:
