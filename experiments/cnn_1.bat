@@ -1,0 +1,17 @@
+python experiment.py ^
+-use_img ^
+-net cnn ^
+-loss smooth_l1 ^
+-optimizer adam ^
+-optim_lr 1e-2 ^
+-rb_size 2500 ^
+-batch_size 128 ^
+-n_episodes 1000 ^
+-gamma 0.99 ^
+-target_model ^
+-tm_wait 20 ^
+-custom_reward ^
+-intr_rew curiosity-based ^
+-policy egreedy ^
+-epsilon 0.025 0.99 200. ^
+-run_name C:/Users/ricca/Desktop/exp_results/cnn_1 ^

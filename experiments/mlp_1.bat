@@ -13,5 +13,5 @@ python experiment.py ^
 -intr_rew novelty-based ^
 -policy egreedy ^
 -epsilon 0.025 0.99 200. ^
--run_name C:/Users/ricca/Desktop/exp_results/basic_mlp ^
+-run_name C:/Users/ricca/Desktop/exp_results/basic_mlp_ ^
 -evaluate

@@ -59,9 +59,9 @@ def main():
     else: ssl_mode = args.ssl_mode  # None: no ssl, 0: pretrain+finetune, 1: pretrain, 2: finetune
     if args.net == 'mlp':
         net = MLP(4, 2)
-    elif args.net == 'conv':
+    elif args.net == 'cnn':
         net = ConvNet(2, 2, dueling=True)
-    elif args.net == 'ssl_conv':
+    elif args.net == 'ssl_cnn':
         net = SSLConvNet(2, 2, dueling=True)
     else:
         print('Select a correct network')
