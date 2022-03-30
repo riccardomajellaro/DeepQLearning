@@ -1,5 +1,4 @@
-from asyncio import run
-from xmlrpc.client import Boolean
+import os
 import torch
 import gym
 from classes.DQL import DQL
@@ -8,9 +7,8 @@ from Utilities import argmax
 import argparse
 
 def main():
-
     parser = argparse.ArgumentParser()
-    # Parse model parameters
+    # parse model parameters
     parser.add_argument('-use_img', action='store_true') # True only when used (store_true)
     parser.add_argument('-ssl_mode', action='store', type=int, default=None)
     parser.add_argument('-evaluate', action='store_true')
@@ -21,7 +19,7 @@ def main():
     parser.add_argument('-optim_lr', action='store', type=float, default=1e-3)
     parser.add_argument('-device', action='store', type=str, default="cuda")
 
-    # Parse DQN parameters
+    # parse DQL parameters
     parser.add_argument('-rb_size', action='store', type=int, default=10000)
     parser.add_argument('-batch_size', action='store', type=int, default=128)
     parser.add_argument('-n_episodes', action='store', type=int, default=10000)
@@ -32,7 +30,7 @@ def main():
     parser.add_argument('-custom_reward', action='store_true')
     parser.add_argument('-intr_rew', action='store', type=str, default=None)
     parser.add_argument('-policy', action='store', type=str, default=None)
-        # Remember to pass epsilon values as floats cause parser is stupid..
+    # remember to pass epsilon values as floats cause parser is stupid..
     parser.add_argument('-epsilon', action='store', type=float, 
                         nargs="+", default=[0.02, 0.99, 200.])
     parser.add_argument('-temp', action='store', type=float, default=0.1)
@@ -42,10 +40,10 @@ def main():
     parser.add_argument('-render', action='store_true')
     args = parser.parse_args()
 
-    # Create gym environment
+    # create gym environment
     env = gym.make('CartPole-v1')
     
-    # Dictionaries used to initialize loss and optimizer
+    # dictionaries used to initialize loss and optimizer
     losses = {  'mse' : torch.nn.MSELoss,
                 'l1' : torch.nn.L1Loss,
                 'smooth_l1' : torch.nn.SmoothL1Loss
@@ -54,7 +52,8 @@ def main():
                     'sgd': torch.optim.SGD,
                     'rms': torch.optim.RMSprop
                 }
-    # Initialize model params, loss and optimizer
+
+    # initialize model params, loss and optimizer
     use_img = args.use_img
     if not use_img: ssl_mode = None
     else: ssl_mode = args.ssl_mode  # None: no ssl, 0: pretrain+finetune, 1: pretrain, 2: finetune
@@ -70,17 +69,23 @@ def main():
     loss = losses[args.loss]()
     optimizer = optimizers[args.optimizer](net.parameters(), args.optim_lr)
 
-    # Control that the batch size is not greater than the buffer.
-    # If we set args.rb_size to 1 we get a DQN without buffer.
+    # control that the batch size is not greater than the buffer.
+    # if we set args.rb_size to 1 we get a DQN without buffer.
     batch_size = min(args.rb_size, args.batch_size)
 
-    # Fix epsilon as tuple
+    # fix epsilon as tuple
     if len(args.epsilon) > 1:
         epsilon = tuple(args.epsilon)
     else: epsilon = args.epsilon[0]
 
-    # Run name + directory to save the timesteps per episode
-    run_name = None if args.run_name == None else "array_results/"+args.run_name
+    # run name + directory to save the timesteps per episode
+    if args.run_name is None:
+        run_name = None
+    else:
+        if os.path.isabs(args.run_name):
+            run_name = args.run_name
+        else:
+            run_name = "exp_results/" + args.run_name
 
     # TODO add assert statements for not allowing some configs together
     dql = DQL(
@@ -89,16 +94,16 @@ def main():
         policy=args.policy, epsilon=epsilon, temp=args.temp, k=args.k, beta=args.beta,
         eta=args.eta, model=net, target_model=args.target_model, tm_wait=args.tm_wait, 
         double_dql=args.double_dql, intr_rew=args.intr_rew, custom_reward=args.custom_reward, 
-        env=env, input_is_img=use_img, render=args.render, 
+        env=env, input_is_img=use_img, render=args.render,
         run_name=run_name
     )
-    # Control to make sure we use ssl_mode correctly
+    # control to make sure we use ssl_mode correctly
     if ssl_mode is not None:
         dql.self_sup_learn(ssl_mode)
     if ssl_mode is None or ssl_mode in [0, 2]:
         dql()
 
-    # Test an evaluation run after the model is done training
+    # test an evaluation run after the model is done training
     if args.evaluate:
         from time import sleep
         done = False

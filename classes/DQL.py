@@ -101,7 +101,6 @@ class DQL:
         self.custom_reward = custom_reward
         self.input_is_img = input_is_img
         self.render = render
-        # Save the timesteps achieved per episode as a numpy array
         self.run_name = run_name
 
     def __call__(self):
@@ -115,16 +114,15 @@ class DQL:
         ep_tms = []
         for ep in range(self.n_episodes):
             ep_tms.append(self.episode(ep))
-            if ep_tms[-1] > best_ts_ep:
+            if ep_tms[-1] >= best_ts_ep:
                 print("New max number of steps in episode:", best_ts_ep)
                 best_ts_ep = ep_tms[-1]
-        # Probably fix name
-        if self.run_name != None:
-            np.save(self.run_name,ep_tms)
-
-        # TODO: Save the model. Not only the weights,
-        # unless you remeber the configuration, 
-        # because of the dynamic creation of the model
+                if self.run_name is not None:
+                    # save model
+                    torch.save(self.model.state_dict(), f"{self.run_name}_weights.pt")
+        if self.run_name is not None:
+            # save steps per episode
+            np.save(self.run_name, ep_tms)
 
     def update_target(self):
         self.target_model.load_state_dict(self.model.state_dict())
@@ -161,7 +159,7 @@ class DQL:
         if mode == 2:
             print("Loading pretrained weights from self-supervised learning")
             # self.model.load_state_dict(torch.load("./ssl_pretrained/weights"))
-            state_dict = torch.load("./ssl_pretrained/weights.pt")
+            state_dict = torch.load("ssl_pretrained/weights.pt")
             for name, param in state_dict.items():
                 if "output_head" in name:
                     continue
@@ -340,10 +338,10 @@ class DQL:
             r_ep += r
             self.actions_reward[a] += r  # for ucb action selection
             # add experience to replay buffer (as torch tensors)
-            self.rb.append((torch.tensor(s, device=self.device), a,
-                torch.tensor(r, device=self.device), 
-                torch.tensor(s_next, device=self.device),
-                torch.tensor(done, device=self.device)))
+            self.rb.append((torch.tensor(s, device=self.device, dtype=torch.float32), a,
+                torch.tensor(r, device=self.device, dtype=torch.float32), 
+                torch.tensor(s_next, device=self.device, dtype=torch.float32),
+                torch.tensor(done, device=self.device, dtype=torch.bool)))
             # set next state as the new current state
             s = s_next
             # to fill the replay buffer before starting training
