@@ -14,6 +14,7 @@ def main():
     parser.add_argument('-evaluate', action='store_true')
     parser.add_argument('-run_name', action='store', type=str, default=None)
     parser.add_argument('-net', action='store', type=str, default=None)
+    parser.add_argument('-dueling', action='store_true')
     parser.add_argument('-loss', action='store', type=str, default='mse')
     parser.add_argument('-optimizer', action='store', type=str, default='adam')
     parser.add_argument('-optim_lr', action='store', type=float, default=1e-3)
@@ -60,9 +61,9 @@ def main():
     if args.net == 'mlp':
         net = MLP(4, 2)
     elif args.net == 'cnn':
-        net = ConvNet(2, 2, dueling=True)
+        net = ConvNet(2, 2, dueling=args.dueling)
     elif args.net == 'ssl_cnn':
-        net = SSLConvNet(2, 2, dueling=True)
+        net = SSLConvNet(2, 2, dueling=args.dueling)
     else:
         print('Select a correct network')
         exit()

@@ -62,7 +62,6 @@ def main():
             ts_ep[i] += 1
             if args.render:
                 env.render()
-                sleep(0.05)
         print(f"[{i}] {ts_ep[i]} steps")
     print(f"Average steps over {trials} trials: {mean(ts_ep)} +- {std(ts_ep)}")
 

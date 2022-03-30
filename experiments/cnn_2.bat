@@ -1,7 +1,6 @@
 python experiment.py ^
 -use_img ^
 -net cnn ^
--double_dql ^
 -dueling ^
 -loss smooth_l1 ^
 -optimizer rms ^
@@ -16,4 +15,4 @@ python experiment.py ^
 -intr_rew curiosity-based ^
 -policy egreedy ^
 -epsilon 0.025 0.99 200. ^
--run_name C:/Users/ricca/Desktop/exp_results/cnn_1 ^
+-run_name C:/Users/ricca/Desktop/exp_results/cnn_2 ^

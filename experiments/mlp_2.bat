@@ -9,8 +9,7 @@ python experiment.py ^
 -gamma 0.99 ^
 -target_model ^
 -tm_wait 10 ^
--custom_reward ^
 -intr_rew novelty-based ^
 -policy egreedy ^
 -epsilon 0.025 0.99 200. ^
--run_name C:/Users/ricca/Desktop/exp_results/mlp_1 ^
+-run_name C:/Users/ricca/Desktop/exp_results/mlp_2 ^

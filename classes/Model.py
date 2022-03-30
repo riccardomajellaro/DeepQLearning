@@ -56,27 +56,31 @@ class ConvNet(NN):
         super(NN, self).__init__()
 
         self.hidden_layers = nn.Sequential(
-            nn.Conv2d(input_c, 8, kernel_size=5, stride=2),
-            # nn.BatchNorm2d(8),
+            nn.Conv2d(input_c, 32, kernel_size=5, stride=3),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(8, 16, kernel_size=5, stride=2),
-            # nn.BatchNorm2d(16),
+            # nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(16, 32, kernel_size=5, stride=2),
-            # nn.BatchNorm2d(32),
+            # nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),
+            # nn.MaxPool2d(kernel_size=2),
             nn.Flatten()
         )
 
         self.v_output = nn.Sequential(
-            nn.Linear(128, 1),
+            nn.Linear(14400, 1024),
+            nn.Linear(1024, 128),
+            nn.Linear(128, 1)
         )
 
         self.output_layer = nn.Sequential(
-            nn.Linear(128, output_dim),
+            nn.Linear(14400, 1024),
+            nn.Linear(1024, 128),
+            nn.Linear(128, output_dim)
         )
 
         if dueling:
