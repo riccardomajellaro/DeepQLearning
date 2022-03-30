@@ -116,7 +116,7 @@ class DQL:
         for ep in range(self.n_episodes):
             ep_tms.append(self.episode(ep))
             if ep_tms[-1] > best_ts_ep:
-                print("New max number of episode steps:", best_ts_ep)
+                print("New max number of steps in episode:", best_ts_ep)
                 best_ts_ep = ep_tms[-1]
         # Probably fix name
         if self.run_name != None:

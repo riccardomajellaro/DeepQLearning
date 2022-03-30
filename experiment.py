@@ -53,7 +53,6 @@ def main():
     render bool
     """
     args = parser.parse_args()
-    #print("arguments passed:",args)
 
     env = gym.make('CartPole-v1')
 
@@ -99,7 +98,7 @@ def main():
         rb_size=args.rb_size, batch_size=batch_size, n_episodes=args.n_episodes, 
         device=args.device, loss=loss, optimizer=optimizer, gamma=args.gamma, 
         policy=args.policy, epsilon=epsilon, temp=args.temp, k=args.k, beta=args.beta,
-        eta=0.6, model=net, target_model=args.target_model, tm_wait=args.tm_wait, 
+        eta=args.eta, model=net, target_model=args.target_model, tm_wait=args.tm_wait, 
         double_dql=args.double_dql, intr_rew=args.intr_rew, custom_reward=args.custom_reward, 
         env=env, input_is_img=use_img, render=args.render, 
         run_name=run_name

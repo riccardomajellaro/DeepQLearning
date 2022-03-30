@@ -4,7 +4,8 @@ from Utilities import argmax
 
 
 class NN(nn.Module):
-    """ Generic NN model
+    """ Generic NN model.
+        This is not used anymore.
     """
     def __init__(self, input_dim, output_dim, n_hidden_layers, neurons_per_layer):
         super(NN, self).__init__()
@@ -39,14 +40,14 @@ class MLP(NN):
         super(NN, self).__init__()
         
         self.hidden_layers = nn.Sequential(
-            nn.Linear(input_dim, 32),
+            nn.Linear(input_dim, 64),
             nn.ReLU(),
-            nn.Linear(32, 32),
+            nn.Linear(64, 64),
             nn.ReLU()
         )
 
         self.output_layer = nn.Sequential(
-            nn.Linear(32, output_dim),
+            nn.Linear(64, output_dim),
         )
 
 
