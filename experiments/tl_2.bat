@@ -15,4 +15,4 @@ python experiment.py ^
 -custom_reward ^
 -policy egreedy ^
 -epsilon 0.025 0.99 200. ^
--run_name C:/Users/ricca/Desktop/exp_results/ssl_2
+-run_name C:/Users/ricca/Desktop/exp_results/tl_2
