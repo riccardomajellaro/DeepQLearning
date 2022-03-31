@@ -121,8 +121,10 @@ class DQL:
                 print("New max number of steps in episode:", best_ts_ep)
                 if self.run_name is not None:
                     if best_ts_ep == 500:
-                        if self.evaluate(10) >= best_avg:
+                        curr_avg = self.evaluate(10)
+                        if curr_avg >= best_avg:
                             save = True
+                            best_avg = curr_avg
                         else: save = False
                     else: save = True
                     if save:
