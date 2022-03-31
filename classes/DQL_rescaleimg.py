@@ -112,6 +112,7 @@ class DQL:
         self.training_started = False
         self.ts_tot = 0
         best_ts_ep = 0
+        best_avg = 0
         ep_tms = []
         for ep in range(self.n_episodes):
             ep_tms.append(self.episode(ep))
@@ -119,11 +120,35 @@ class DQL:
                 best_ts_ep = ep_tms[-1]
                 print("New max number of steps in episode:", best_ts_ep)
                 if self.run_name is not None:
-                    # save model
-                    torch.save(self.model.state_dict(), f"{self.run_name}_weights.pt")
+                    if best_ts_ep == 500:
+                        if self.evaluate(10) >= best_avg:
+                            save = True
+                        else: save = False
+                    else: save = True
+                    if save:
+                        # save model
+                        torch.save(self.model.state_dict(), f"{self.run_name}_weights.pt")
         if self.run_name is not None:
             # save steps per episode
             np.save(self.run_name, ep_tms)
+
+    def evaluate(self, trials):
+        ts_ep = [0]*trials
+        for i in range(trials):
+            done = False
+            s = self.env.reset()
+            if self.input_is_img:
+                frames_mem = deque(maxlen=4)
+                s = self.collect_frame(frames_mem)
+            while not done:
+                with torch.no_grad():
+                    self.model.eval()
+                    s_next, _, done, _ = self.env.step(int(argmax(self.model.forward(torch.tensor(s, dtype=torch.float32, device=self.device).unsqueeze(0)))))
+                    if self.input_is_img:
+                        s_next = self.collect_frame(frames_mem)
+                    s = s_next
+                ts_ep[i] += 1
+        return np.mean(ts_ep)
 
     def update_target(self):
         self.target_model.load_state_dict(self.model.state_dict())
@@ -191,7 +216,7 @@ class DQL:
                     target_tens = torch.tensor(target, device=self.device)
                     decoded_targ = self.model.forward_ssl(target_tens.unsqueeze(0)).squeeze(0)
                     # get the target side from the last frame (0: left, 1: right)
-                    target_tens = torch.sum(target_tens[-1, :, :int(target_tens.shape[1]/2)]) < torch.sum(target_tens[-1, :, int(target_tens.shape[1]/2):])
+                    target_tens = torch.sum(target_tens[-1, :, :int(target_tens.shape[1]/2)]) > torch.sum(target_tens[-1, :, int(target_tens.shape[1]/2):])
                     target_tens = target_tens.type(torch.float32).unsqueeze(0)
                     targets_ep.append(target_tens)
                     preds_ep.append(decoded_targ)
@@ -205,7 +230,7 @@ class DQL:
                 curr_loss.backward()
                 self.optimizer.step()
                 print("Loss:", curr_loss.cpu().detach().numpy())
-                if ep_tot >= 1000:
+                if ep_tot >= 5000:
                     break
 
             # save model
