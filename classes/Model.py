@@ -117,21 +117,33 @@ class SSLConvNet(NN):
         super(NN, self).__init__()
 
         self.encoder = nn.Sequential(
-            nn.Conv2d(input_c, 16, kernel_size=5, stride=2),
-            nn.Conv2d(16, 16, kernel_size=5, stride=2),
-            # nn.BatchNorm2d(16),
-            # nn.Dropout(0.5),
-            # nn.ReLU(),
-            # nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(16, 32, kernel_size=3, stride=2),
+            # nn.Conv2d(input_c, 16, kernel_size=5, stride=2),
+            # # nn.Conv2d(16, 16, kernel_size=5, stride=2),
+            # # nn.BatchNorm2d(16),
+            # # nn.Dropout(0.5),
+            # # nn.ReLU(),
+            # # nn.MaxPool2d(kernel_size=2),
+            # nn.Conv2d(16, 32, kernel_size=3, stride=2),
+            # # nn.BatchNorm2d(32),
+            # # nn.Dropout(0.2),
+            # # nn.ReLU(),
+            # # nn.MaxPool2d(kernel_size=2),
+            # nn.Conv2d(32, 64, kernel_size=3, stride=2),
+            # # nn.BatchNorm2d(64),
+            # # nn.Dropout(0.2),
+            # nn.ReLU(),  # latent vector (not flattened)
+
+            nn.Conv2d(input_c, 32, kernel_size=8, stride=4),
             # nn.BatchNorm2d(32),
-            # nn.Dropout(0.2),
-            # nn.ReLU(),
+            nn.ReLU(),
             # nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
             # nn.BatchNorm2d(64),
-            # nn.Dropout(0.2),
-            nn.ReLU(),  # latent vector (not flattened)
+            nn.ReLU(),
+            # nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2),
+            # nn.BatchNorm2d(64),
+            nn.ReLU(),
         )
         
         self.decoder = nn.Sequential(
@@ -145,21 +157,23 @@ class SSLConvNet(NN):
 
         self.side_output = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(256, 16),
+            nn.Linear(1600, 256),
             nn.ReLU(),
-            nn.Linear(16, 1),
+            nn.Linear(256, 1),
             nn.Sigmoid()
         )
 
         self.output_head = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(256, 16),
-            # nn.ReLU(),
-            nn.Linear(16, output_dim),
+            nn.Linear(1600, 256),
+            nn.ReLU(),
+            nn.Linear(256, output_dim),
         )
 
         self.v_output = nn.Sequential(
             nn.Flatten(),
+            nn.Linear(1600, 256),
+            nn.ReLU(),
             nn.Linear(256, 1),
         )
 

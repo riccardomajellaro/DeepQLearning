@@ -2,18 +2,16 @@ python experiment.py ^
 -use_img ^
 -net cnn ^
 -double_dql ^
--dueling ^
--loss smooth_l1 ^
--optimizer rms ^
--optim_lr 1e-4 ^
--rb_size 2500 ^
+-loss mse ^
+-optimizer adam ^
+-optim_lr 1e-3 ^
+-rb_size 5000 ^
 -batch_size 128 ^
--n_episodes 1000 ^
--gamma 0.95 ^
+-n_episodes 5000 ^
+-gamma 0.9 ^
 -target_model ^
--tm_wait 5 ^
+-tm_wait 250 ^
 -custom_reward ^
--intr_rew curiosity-based ^
 -policy egreedy ^
--epsilon 0.025 0.99 200. ^
--run_name C:/Users/ricca/Desktop/exp_results/cnn_1 ^
+-epsilon 0.05 0.99 1000. ^
+-run_name C:/Users/ricca/Desktop/exp_results/cnn_1
