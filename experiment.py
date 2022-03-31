@@ -1,7 +1,7 @@
 import os
 import torch
 import gym
-from classes.DQL import DQL
+from classes.DQL_rescaleimg import DQL
 from classes.Model import *
 from Utilities import argmax
 import argparse
@@ -61,14 +61,17 @@ def main():
     if args.net == 'mlp':
         net = MLP(4, 2)
     elif args.net == 'cnn':
-        net = ConvNet(2, 2, dueling=args.dueling)
+        net = ConvNet(4, 2, dueling=args.dueling)
     elif args.net == 'ssl_cnn':
-        net = SSLConvNet(2, 2, dueling=args.dueling)
+        net = SSLConvNet(4, 2, dueling=args.dueling)
     else:
         print('Select a correct network')
         exit()
     loss = losses[args.loss]()
-    optimizer = optimizers[args.optimizer](net.parameters(), args.optim_lr)
+    kwargs = {}
+    if args.optimizer == "rms":
+        kwargs["momentum"] = 0.95
+    optimizer = optimizers[args.optimizer](net.parameters(), args.optim_lr, **kwargs)
 
     # control that the batch size is not greater than the buffer.
     # if we set args.rb_size to 1 we get a DQN without buffer.

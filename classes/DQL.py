@@ -115,8 +115,8 @@ class DQL:
         for ep in range(self.n_episodes):
             ep_tms.append(self.episode(ep))
             if ep_tms[-1] >= best_ts_ep:
-                print("New max number of steps in episode:", best_ts_ep)
                 best_ts_ep = ep_tms[-1]
+                print("New max number of steps in episode:", best_ts_ep)
                 if self.run_name is not None:
                     # save model
                     torch.save(self.model.state_dict(), f"{self.run_name}_weights.pt")
@@ -145,7 +145,7 @@ class DQL:
         # stack the new and last frames in an array along depth and reshape to CxHxW
         if last_s is None:
             last_s = s1
-        elif s1.shape == last_s.shape:
+        elif s1.shape != last_s.shape:
             s1 = last_s
         s = np.dstack((s1, last_s)).transpose((2, 0, 1))
         return s

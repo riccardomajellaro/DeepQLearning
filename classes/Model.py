@@ -56,31 +56,35 @@ class ConvNet(NN):
         super(NN, self).__init__()
 
         self.hidden_layers = nn.Sequential(
-            nn.Conv2d(input_c, 32, kernel_size=5, stride=3),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(input_c, 32, kernel_size=8, stride=4),
+            # nn.BatchNorm2d(32),
             nn.ReLU(),
             # nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            # nn.BatchNorm2d(64),
             nn.ReLU(),
             # nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(64, 64, kernel_size=3, stride=2),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            # nn.BatchNorm2d(64),
             nn.ReLU(),
             # nn.MaxPool2d(kernel_size=2),
             nn.Flatten()
         )
 
         self.v_output = nn.Sequential(
-            nn.Linear(14400, 1024),
-            nn.Linear(1024, 128),
-            nn.Linear(128, 1)
+            nn.Linear(5184, 512),
+            nn.ReLU(),
+            # nn.Linear(512, 128),
+            # nn.ReLU(),
+            nn.Linear(512, 1)
         )
 
         self.output_layer = nn.Sequential(
-            nn.Linear(14400, 1024),
-            nn.Linear(1024, 128),
-            nn.Linear(128, output_dim)
+            nn.Linear(5184, 512),
+            nn.ReLU(),
+            # nn.Linear(512, 128),
+            # nn.ReLU(),
+            nn.Linear(512, output_dim)
         )
 
         if dueling:
@@ -109,23 +113,23 @@ class SSLConvNet(NN):
         forward_ssl(): used when performing self-supervised learning
         forward(): used when fine-tuning the model with deep RL
     """
-    def __init__(self, input_c, output_dim, dueling=False):
+    def __init__(self, input_c, output_dim, dueling=False, side_clf=True):
         super(NN, self).__init__()
 
         self.encoder = nn.Sequential(
             nn.Conv2d(input_c, 16, kernel_size=5, stride=2),
             nn.Conv2d(16, 16, kernel_size=5, stride=2),
-            nn.BatchNorm2d(16),
+            # nn.BatchNorm2d(16),
             # nn.Dropout(0.5),
             # nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),
+            # nn.MaxPool2d(kernel_size=2),
             nn.Conv2d(16, 32, kernel_size=3, stride=2),
-            nn.BatchNorm2d(32),
+            # nn.BatchNorm2d(32),
             # nn.Dropout(0.2),
             # nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),
+            # nn.MaxPool2d(kernel_size=2),
             nn.Conv2d(32, 64, kernel_size=3, stride=2),
-            nn.BatchNorm2d(64),
+            # nn.BatchNorm2d(64),
             # nn.Dropout(0.2),
             nn.ReLU(),  # latent vector (not flattened)
         )
@@ -136,6 +140,14 @@ class SSLConvNet(NN):
             nn.ConvTranspose2d(16, 8, kernel_size=2, stride=2),
             nn.ConvTranspose2d(8, 4, kernel_size=2, stride=2),
             nn.ConvTranspose2d(4, 2, kernel_size=2, stride=2),
+            nn.Sigmoid()
+        )
+
+        self.side_output = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(256, 16),
+            nn.ReLU(),
+            nn.Linear(16, 1),
             nn.Sigmoid()
         )
 
@@ -150,6 +162,9 @@ class SSLConvNet(NN):
             nn.Flatten(),
             nn.Linear(256, 1),
         )
+
+        if side_clf:
+            self.decoder = self.side_output
 
         if dueling:
             self.forward = self.forward_dueling

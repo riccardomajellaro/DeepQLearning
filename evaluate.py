@@ -1,11 +1,11 @@
 import torch
 import gym
-from classes.DQL import DQL
+from classes.DQL_rescaleimg import DQL
 from classes.Model import *
 from Utilities import argmax
 import argparse
-from time import sleep
 from numpy import mean, std
+from collections import deque
 
 def main():
     parser = argparse.ArgumentParser()
@@ -18,9 +18,9 @@ def main():
 
     if args.net == "mlp":
         net = MLP(4, 2)
-    elif args.net == "conv":
-        net = ConvNet(2, 2, dueling=True)
-    elif args.net == "ssl_conv":
+    elif args.net == "cnn":
+        net = ConvNet(4, 2, dueling=True)
+    elif args.net == "ssl_cnn":
         net = SSLConvNet(2, 2, dueling=True)
     else:
         print("Select a correct network")
@@ -30,8 +30,8 @@ def main():
     try:
         state_dict = torch.load(f"./exp_results/{args.run_name}_weights.pt")
         net.load_state_dict(state_dict)
-    except:
-        exit(f"Couldn't load the checkpoint at {args.run_name}_weights.pt")
+    except Exception as e:
+        exit(f"Couldn't load the checkpoint at {args.run_name}_weights.pt: {e}")
 
     # create gym environment
     env = gym.make('CartPole-v1')
@@ -51,13 +51,14 @@ def main():
         if args.render:
             env.render()
         if args.use_img:
-            s = dql.collect_frame(None)
+            frames_mem = deque(maxlen=4)
+            s = dql.collect_frame(frames_mem)
         while not done:
             with torch.no_grad():
                 net.eval()
                 s_next, _, done, _ = env.step(int(argmax(net.forward(torch.tensor(s, dtype=torch.float32, device=dql.device).unsqueeze(0)))))
                 if args.use_img:
-                    s_next = dql.collect_frame(s[0])
+                    s_next = dql.collect_frame(frames_mem)
                 s = s_next
             ts_ep[i] += 1
             if args.render:
