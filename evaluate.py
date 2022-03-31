@@ -21,7 +21,7 @@ def main():
     elif args.net == "cnn":
         net = ConvNet(4, 2, dueling=True)
     elif args.net == "ssl_cnn":
-        net = SSLConvNet(2, 2, dueling=True)
+        net = SSLConvNet(4, 2, dueling=True)
     else:
         print("Select a correct network")
         exit()

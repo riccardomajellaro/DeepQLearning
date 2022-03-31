@@ -143,7 +143,7 @@ class SSLConvNet(NN):
             # nn.MaxPool2d(kernel_size=2),
             nn.Conv2d(64, 64, kernel_size=3, stride=2),
             # nn.BatchNorm2d(64),
-            nn.ReLU(),
+            nn.ReLU()
         )
         
         self.decoder = nn.Sequential(
@@ -157,17 +157,21 @@ class SSLConvNet(NN):
 
         self.side_output = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(1600, 256),
+            nn.Linear(1600, 512),
             nn.ReLU(),
-            nn.Linear(256, 1),
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            nn.Linear(128, 1),
             nn.Sigmoid()
         )
 
         self.output_head = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(1600, 256),
+            nn.Linear(1600, 512),
             nn.ReLU(),
-            nn.Linear(256, output_dim),
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            nn.Linear(128, output_dim)
         )
 
         self.v_output = nn.Sequential(
