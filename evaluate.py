@@ -14,12 +14,13 @@ def main():
     parser.add_argument("-run_name", action="store", type=str, default=None)
     parser.add_argument('-render', action='store_true')
     parser.add_argument('-device', action='store', type=str, default="cuda")
+    parser.add_argument('-virtual_display', action='store_true')
     args = parser.parse_args()
 
     if args.net == "mlp":
         net = MLP(4, 2)
     elif args.net == "cnn":
-        net = ConvNet(4, 2, dueling=True)
+        net = ConvNet(4, 2)
     elif args.net == "ssl_cnn":
         net = SSLConvNet(2, 2, dueling=True)
     else:
@@ -33,6 +34,11 @@ def main():
     except Exception as e:
         exit(f"Couldn't load the checkpoint at {args.run_name}_weights.pt: {e}")
 
+    if args.virtual_display:
+        from pyvirtualdisplay import Display
+        disp = Display()
+        disp.start()
+    
     # create gym environment
     env = gym.make('CartPole-v1')
 
@@ -67,6 +73,8 @@ def main():
     print(f"Average steps over {trials} trials: {mean(ts_ep)} +- {std(ts_ep)}")
 
     env.close()
+    if args.virtual_display:
+        disp.stop()  # display is active
 
 if __name__ == "__main__":
     main()

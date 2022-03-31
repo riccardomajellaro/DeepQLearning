@@ -121,7 +121,7 @@ class DQL:
                 print("New max number of steps in episode:", best_ts_ep)
                 if self.run_name is not None:
                     if best_ts_ep == 500:
-                        curr_avg = self.evaluate(10)
+                        curr_avg = self.evaluate(30)
                         if curr_avg >= best_avg:
                             save = True
                             best_avg = curr_avg
@@ -129,7 +129,7 @@ class DQL:
                     else: save = True
                     if save:
                         # save model
-                        torch.save(self.model.state_dict(), f"{self.run_name}_weights.pt")
+                        torch.save(self.model.state_dict(), f"{self.run_name}_{ep}_weights.pt")
         if self.run_name is not None:
             # save steps per episode
             np.save(self.run_name, ep_tms)

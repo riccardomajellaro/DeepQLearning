@@ -39,8 +39,14 @@ def main():
     parser.add_argument('-beta', action='store', type=float, default=0.02)
     parser.add_argument('-eta', action='store', type=float, default=0.6)
     parser.add_argument('-render', action='store_true')
+    parser.add_argument('-virtual_display', action='store_true')
     args = parser.parse_args()
 
+    if args.virtual_display:
+        from pyvirtualdisplay import Display
+        disp = Display()
+        disp.start()
+    
     # create gym environment
     env = gym.make('CartPole-v1')
     
@@ -127,6 +133,8 @@ def main():
             sleep(0.1)
 
     env.close()
+    if args.virtual_display:
+        disp.stop()
 
 if __name__ == "__main__":
     main()
