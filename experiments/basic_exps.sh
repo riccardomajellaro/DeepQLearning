@@ -70,7 +70,7 @@ python experiment.py \
 -gamma 0.99 \
 -policy egreedy \
 -epsilon 0.02 0.99 200. \
--run_name MLP_buffer ;
+-run_name MLP_buffer_10 ;
 
 # MLP + target_model tm_wait 100
 python experiment.py \
@@ -86,7 +86,7 @@ python experiment.py \
 -gamma 0.99 \
 -policy egreedy \
 -epsilon 0.02 0.99 200. \
--run_name MLP_buffer ;
+-run_name MLP_buffer_100 ;
 
 # MLP + target_model tm_wait 1000
 python experiment.py \
@@ -102,7 +102,7 @@ python experiment.py \
 -gamma 0.99 \
 -policy egreedy \
 -epsilon 0.02 0.99 200. \
--run_name MLP_buffer ;
+-run_name MLP_buffer_1000 ;
 
 # CNN base
 python experiment.py \
@@ -119,5 +119,81 @@ python experiment.py \
 -tm_wait 10 \
 -policy egreedy \
 -epsilon 0.025 0.99 400. \
--run_name cnn_4 \
--virtual_display ;
+-virtual_display \
+-run_name CNN_base ;
+
+# CNN curiosity
+python experiment.py \
+-use_img \
+-net cnn \
+-loss mse \
+-optimizer adam \
+-optim_lr 1e-4 \
+-rb_size 5000 \
+-batch_size 128 \
+-n_episodes 1000 \
+-gamma 0.99 \
+-target_model \
+-tm_wait 10 \
+-policy egreedy \
+-epsilon 0.025 0.99 400. \
+-intr_rew curiosity-based \
+-virtual_display \
+-run_name CNN_curiosity ;
+
+# CNN novelty
+python experiment.py \
+-use_img \
+-net cnn \
+-loss mse \
+-optimizer adam \
+-optim_lr 1e-4 \
+-rb_size 5000 \
+-batch_size 128 \
+-n_episodes 1000 \
+-gamma 0.99 \
+-target_model \
+-tm_wait 10 \
+-policy egreedy \
+-epsilon 0.025 0.99 400. \
+-intr_rew novelty-based \
+-virtual_display \
+-run_name CNN_novelty ;
+
+# CNN dueling
+python experiment.py \
+-use_img \
+-net cnn \
+-loss mse \
+-optimizer adam \
+-optim_lr 1e-4 \
+-rb_size 5000 \
+-batch_size 128 \
+-n_episodes 1000 \
+-gamma 0.99 \
+-target_model \
+-tm_wait 10 \
+-policy egreedy \
+-epsilon 0.025 0.99 400. \
+-dueling \
+-virtual_display \
+-run_name CNN_dueling ;
+
+# CNN double
+python experiment.py \
+-use_img \
+-net cnn \
+-loss mse \
+-optimizer adam \
+-optim_lr 1e-4 \
+-rb_size 5000 \
+-batch_size 128 \
+-n_episodes 1000 \
+-gamma 0.99 \
+-target_model \
+-tm_wait 10 \
+-policy egreedy \
+-epsilon 0.025 0.99 400. \
+-double_dql \
+-virtual_display \
+-run_name CNN_double ;

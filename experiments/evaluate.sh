@@ -3,4 +3,5 @@
 python evaluate.py \
 -net cnn \
 -use_img \
--run_name ../exp_results/cnn_5
+-virtual_display \
+-run_name ../exp_results/mlp_1
