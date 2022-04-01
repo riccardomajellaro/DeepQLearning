@@ -70,7 +70,7 @@ python experiment.py \
 -gamma 0.99 \
 -policy egreedy \
 -epsilon 0.02 0.99 200. \
--run_name MLP_buffer_10 ;
+-run_name MLP_tm_wait_10 ;
 
 # MLP + target_model tm_wait 100
 python experiment.py \
@@ -86,7 +86,7 @@ python experiment.py \
 -gamma 0.99 \
 -policy egreedy \
 -epsilon 0.02 0.99 200. \
--run_name MLP_buffer_100 ;
+-run_name MLP_tm_wait_100 ;
 
 # MLP + target_model tm_wait 1000
 python experiment.py \
@@ -102,7 +102,7 @@ python experiment.py \
 -gamma 0.99 \
 -policy egreedy \
 -epsilon 0.02 0.99 200. \
--run_name MLP_buffer_1000 ;
+-run_name MLP_tm_wait_1000 ;
 
 # CNN base
 python experiment.py \
