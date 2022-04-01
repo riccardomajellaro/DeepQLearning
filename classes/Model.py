@@ -23,7 +23,7 @@ class NN(nn.Module):
         # Create output layer
         if len(hidden_layers) == 0:
             neurons_per_layer = input_dim
-        self.output_head = nn.Sequential(
+        self.output_layer = nn.Sequential(
             nn.Linear(neurons_per_layer, output_dim)
         )
 
@@ -31,7 +31,7 @@ class NN(nn.Module):
         """ Forward pass through network
         """
         x = self.hidden_layers(x)
-        x = self.output_head(x)
+        x = self.output_layer(x)
         return x
 
 
@@ -48,10 +48,9 @@ class MLP(NN):
             nn.ReLU()
         )
 
-        self.output_head = nn.Sequential(
+        self.output_layer = nn.Sequential(
             nn.Linear(64, output_dim)
         )
-
 
 class ConvNet(NN):
     """ Simple convolutional neural network
@@ -69,7 +68,7 @@ class ConvNet(NN):
             nn.Flatten()
         )
 
-        self.output_head = nn.Sequential(
+        self.output_layer = nn.Sequential(
             nn.Linear(5184, 512),
             nn.ReLU(),
             nn.Linear(512, output_dim)
@@ -87,7 +86,7 @@ class ConvNet(NN):
     
     def forward_dueling(self, x):
         features = self.hidden_layers(x)
-        q_values = self.output_head(features)
+        q_values = self.output_layer(features)
         v_value = self.v_output(features)
         return v_value + (q_values - torch.sum(q_values) / q_values.shape[-1])
 
@@ -129,7 +128,7 @@ class SSLConvNet(NN):
         )
 
         # output head used on the original task
-        self.output_head = nn.Sequential(
+        self.output_layer = nn.Sequential(
             nn.Flatten(),
             nn.Linear(5184, 512),
             nn.ReLU(),
@@ -159,7 +158,7 @@ class SSLConvNet(NN):
 
     def forward_dueling(self, x):
         latent_vector = self.encoder(x)
-        q_values = self.output_head(latent_vector)
+        q_values = self.output_layer(latent_vector)
         v_value = self.v_output(latent_vector)
         return v_value + (q_values - torch.sum(q_values) / q_values.shape[-1])
 
@@ -204,7 +203,7 @@ class TLConvNet(NN):
         )
 
         # output head for finetuning on the original task
-        self.output_head = nn.Sequential(
+        self.output_layer = nn.Sequential(
             nn.Linear(5184, 512),
             nn.ReLU(),
             nn.Linear(512, output_dim)
@@ -230,7 +229,7 @@ class TLConvNet(NN):
 
     def forward_dueling(self, x):
         latent_vector = self.hidden_layers(x)
-        q_values = self.output_head(latent_vector)
+        q_values = self.output_layer(latent_vector)
         v_value = self.v_output(latent_vector)
         return v_value + (q_values - torch.sum(q_values) / q_values.shape[-1])
 
