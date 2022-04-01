@@ -2,24 +2,22 @@ mlp base (egreedy), OK
 mlp base + buffer (batch size test 64 128 256) OK
 mlp base + target model ( tm_wait 10 100 1000) OK
 
+
 cnn base, OK
 cnn base + curiosity OK
 cnn base + novelty OK
 cnn + dueling OK
 cnn + double OK
 
-# TODO ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mlp base + target model + buffer # domani con best config
+
 mlp = base + target_model + buffer # domani con best config
+mlp
 mlp + novelty
-mlp + softmax  #TODO fix softmax
+mlp + softmax
 mlp + custom rewards 
 mlp + custom rewards + novelty
 
 cnn = base + curiosity #domani
 cnn + double + curiosity #domani
 cnn + dueling + curiosity #domani
-cnn + dueling + double + novelty\curiosity #domani
-
-		
-
+cnn + dueling + double + curiosity #domani

@@ -118,13 +118,13 @@ class DQL:
         ep_tms = []
         for ep in range(self.n_episodes):
             ep_tms.append(self.episode(ep))
-            if ep_tms[-1] > best_ts_ep:
+            if ep_tms[-1] >= best_ts_ep:
                 best_ts_ep = ep_tms[-1]
                 print("New max number of steps in episode:", best_ts_ep)
                 if self.run_name is not None:
                     if best_ts_ep == 500:
-                        curr_avg = self.evaluate(50)
-                        if curr_avg >= best_avg:
+                        curr_avg = self.evaluate(25)
+                        if curr_avg > best_avg:
                             save = True
                             best_avg = curr_avg
                         else: save = False
@@ -492,8 +492,8 @@ class DQL:
                 raise KeyError("Provide a temperature")
 
             # we use the provided softmax function in Helper.py
-            probs = softmax(q_values, self.temp).detach().numpy()
-            a = np.random.choice(range(0, self.env.action_space.n), p=probs)
+            probs = softmax(q_values, torch.tensor([self.temp], device=self.device))[0].cpu().detach().numpy()
+            a = torch.tensor(np.random.choice(range(0, self.env.action_space.n), p=probs), dtype=torch.int64)
 
         elif self.policy == "ucb":
             Qt = self.actions_reward / self.actions_count

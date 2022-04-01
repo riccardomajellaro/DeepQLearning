@@ -8,8 +8,8 @@ def softmax(x, temp):
     ''' Computes the softmax of vector x with temperature parameter 'temp'
         x should be of type torch.FloatTensor
      '''
-    x = x / torch.tensor([temp]) # scale by temperature
-    z = x - torch.max(x) # substract max to prevent overflow of softmax
+    x = x / temp  # scale by temperature
+    z = x - torch.max(x)  # substract max to prevent overflow of softmax
     return torch.exp(z) / torch.sum(torch.exp(z)) # compute softmax
 
 def argmax(x):
