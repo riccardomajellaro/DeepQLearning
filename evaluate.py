@@ -1,3 +1,4 @@
+import os
 import torch
 import gym
 from classes.DQL_rescaleimg import DQL
@@ -35,9 +36,7 @@ def main():
         exit(f"Couldn't load the checkpoint at {args.run_name}_weights.pt: {e}")
 
     if args.virtual_display:
-        from pyvirtualdisplay import Display
-        disp = Display()
-        disp.start()
+        os.environ["SDL_VIDEODRIVER"] = "dummy"
     
     # create gym environment
     env = gym.make('CartPole-v1')
@@ -73,8 +72,6 @@ def main():
     print(f"Average steps over {trials} trials: {mean(ts_ep)} +- {std(ts_ep)}")
 
     env.close()
-    if args.virtual_display:
-        disp.stop()  # display is active
 
 if __name__ == "__main__":
     main()

@@ -43,9 +43,7 @@ def main():
     args = parser.parse_args()
 
     if args.virtual_display:
-        from pyvirtualdisplay import Display
-        disp = Display()
-        disp.start()
+        os.environ["SDL_VIDEODRIVER"] = "dummy"
     
     # create gym environment
     env = gym.make('CartPole-v1')
@@ -133,8 +131,6 @@ def main():
             sleep(0.1)
 
     env.close()
-    if args.virtual_display:
-        disp.stop()
 
 if __name__ == "__main__":
     main()
