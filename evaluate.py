@@ -1,7 +1,7 @@
 import os
 import torch
 import gym
-from classes.DQL_rescaleimg import DQL
+from classes.DQL import DQL
 from classes.Model import *
 from Utilities import argmax
 import argparse
@@ -24,13 +24,15 @@ def main():
         net = ConvNet(4, 2)
     elif args.net == "ssl_cnn":
         net = SSLConvNet(4, 2, dueling=True)
+    elif args.net == 'tl_cnn':
+        net = TLConvNet(4, 2, dueling=args.dueling)
     else:
         print("Select a correct network")
         exit()
 
     print(f"Loading weights from of {args.run_name}")
     try:
-        state_dict = torch.load(f"./exp_results/{args.run_name}_weights.pt")
+        state_dict = torch.load(f"exp_results/{args.run_name}_weights.pt")
         net.load_state_dict(state_dict)
     except Exception as e:
         exit(f"Couldn't load the checkpoint at {args.run_name}_weights.pt: {e}")

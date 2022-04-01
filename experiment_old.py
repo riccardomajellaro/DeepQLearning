@@ -1,6 +1,6 @@
 import torch
 import gym
-from classes.DQL import DQL
+from classes.DQL_old import DQL
 from classes.Model import *
 from Utilities import argmax
 

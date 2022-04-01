@@ -1,4 +1,6 @@
+import os
 import random
+import cv2
 import numpy as np
 import torch
 from copy import deepcopy
@@ -111,6 +113,8 @@ class DQL:
         self.training_started = False
         self.ts_tot = 0
         best_ts_ep = 0
+        best_avg = 0
+        best_ep = 0
         ep_tms = []
         for ep in range(self.n_episodes):
             ep_tms.append(self.episode(ep))
@@ -118,11 +122,42 @@ class DQL:
                 best_ts_ep = ep_tms[-1]
                 print("New max number of steps in episode:", best_ts_ep)
                 if self.run_name is not None:
-                    # save model
-                    torch.save(self.model.state_dict(), f"{self.run_name}_weights.pt")
+                    if best_ts_ep == 500:
+                        curr_avg = self.evaluate(50)
+                        if curr_avg >= best_avg:
+                            save = True
+                            best_avg = curr_avg
+                        else: save = False
+                    else: save = True
+                    if save:
+                        # remove old weights
+                        if os.path.isfile(f"{self.run_name}_{best_ep}_weights.pt"): 
+                            os.remove(f"{self.run_name}_{best_ep}_weights.pt")
+                        # save model
+                        torch.save(self.model.state_dict(), f"{self.run_name}_{ep}_weights.pt")
+                        best_ep = ep
         if self.run_name is not None:
             # save steps per episode
             np.save(self.run_name, ep_tms)
+
+    def evaluate(self, trials):
+        ts_ep = [0]*trials
+        for i in range(trials):
+            done = False
+            s = self.env.reset()
+            if self.input_is_img:
+                frames_mem = deque(maxlen=4)
+                s = self.collect_frame(frames_mem)
+            while not done:
+                with torch.no_grad():
+                    self.model.eval()
+                    pred = self.model.forward(torch.tensor(s, dtype=torch.float32, device=self.device).unsqueeze(0))
+                    s_next, _, done, _ = self.env.step(int(argmax(pred)))
+                    if self.input_is_img:
+                        s_next = self.collect_frame(frames_mem)
+                    s = s_next
+                ts_ep[i] += 1
+        return np.mean(ts_ep)
 
     def update_target(self):
         self.target_model.load_state_dict(self.model.state_dict())
@@ -134,80 +169,149 @@ class DQL:
         # and cut width centering in the cart position, keeping 200 pixels in W
         pix_per_unit = int(300 / 2.4)
         pix_from_cent = int(x_pos*pix_per_unit)
-        return frame[-250:-50, 300+pix_from_cent-100:300+pix_from_cent+100]
+        frame = frame[-250:-50, 300+pix_from_cent-100:300+pix_from_cent+100]
+        # downscale image to 100x100
+        return cv2.resize(frame, (100, 100))
 
-    def collect_frame(self, last_s):
+    def collect_frame(self, frames_mem):
         # collect RGB frame and preprocess it
         # s1_x is the x coord of the cart in the frame
         s1 = self.env.render(mode='rgb_array')
         s1_x = self.env.state[0]
-        s1 = self.preprocess_frame(s1, s1_x)
-        # stack the new and last frames in an array along depth and reshape to CxHxW
-        if last_s is None:
-            last_s = s1
-        elif s1.shape != last_s.shape:
-            s1 = last_s
-        s = np.dstack((s1, last_s)).transpose((2, 0, 1))
-        return s
+        try:
+            s1 = self.preprocess_frame(s1, s1_x)
+        except cv2.error:
+            s1 = frames_mem[-1]
+        # stack the frames in an array along depth and reshape to CxHxW
+        if len(frames_mem) == 0:
+            for _ in range(4): frames_mem.append(s1)
+        elif s1.shape != frames_mem[-1].shape:
+            s1 = frames_mem[-1]
+        else:
+            frames_mem.append(s1)
+        return np.dstack(frames_mem).transpose((2, 0, 1))
+
+    def load_pretrained(self, path):
+        state_dict = torch.load(path)
+        for name, param in state_dict.items():
+            if "output_head" in name:
+                continue
+            self.model.load_state_dict({name: param}, strict=False)
 
     def self_sup_learn(self, mode=0):
-        """ Three modalities:
+        """ Self-supervised learning with three modalities:
             0 -> pretraining + finetuning
             1 -> pretraining
             2 -> finetuning
         """
         if mode == 2:
-            print("Loading pretrained weights from self-supervised learning")
-            # self.model.load_state_dict(torch.load("./ssl_pretrained/weights"))
-            state_dict = torch.load("ssl_pretrained/weights.pt")
-            for name, param in state_dict.items():
-                if "output_head" in name:
-                    continue
-                self.model.load_state_dict({name: param}, strict=False)
+            print("[Self-supervised learning] Loading pretrained weights")
+            self.load_pretrained("ssl_pretrained/weights.pt")
 
         else:  # pretraining
-            print("Self-supervised pretraining started")
-            # we use binary cross entropy as the loss function
-            loss = torch.nn.BCELoss()
+            print("[Self-supervised learning] Pretraining started")
             # start self-supervised training
+            loss = torch.nn.BCELoss()
             self.model.train()
-            training_steps = 0
+            ep_tot = 0
             while True:
                 done = False
                 self.env.reset()
-                target = self.collect_frame(None)
+                frames_mem = deque(maxlen=4)
+                target = self.collect_frame(frames_mem)
+                targets_ep, preds_ep = [], []
                 while not done:
                     # collect frames and pass them through the autoencoder
-                    target = self.collect_frame(target[0])
-                    target_tens = torch.tensor(target, device=self.device)
-                    decoded_targ = self.model.forward_ssl(target_tens.unsqueeze(0)).squeeze(0)
-                    # compute loss and execute a training step
-                    curr_loss = loss(decoded_targ, target_tens)
-                    optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
-                    optimizer.zero_grad()
-                    curr_loss.backward()
-                    self.optimizer.step()
+                    target = self.collect_frame(frames_mem)
+                    target = torch.tensor(target, device=self.device)
+                    pred = self.model.forward_ssl(target.unsqueeze(0)).squeeze(0)
+                    targets_ep.append(target)
+                    preds_ep.append(pred)
                     # do a random action
                     _, _, done, _ = self.env.step(np.random.randint(0, 1))
-                    training_steps += 1
-                print("Loss:", curr_loss.cpu().detach().numpy())
-                if training_steps >= 5000:
+                ep_tot += 1
+                # compute loss and execute a training step
+                curr_loss = loss(torch.stack(preds_ep), torch.stack(targets_ep))
+                optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
+                optimizer.zero_grad()
+                curr_loss.backward()
+                self.optimizer.step()
+                if ep_tot % 50 == 0:
+                    print("[Self-supervised learning] Loss:", curr_loss.cpu().detach().numpy())
+                if ep_tot >= 500:
                     break
 
             # save evaluation samples
             with torch.no_grad():
                 self.model.eval()
-                out = self.model.forward_ssl(target_tens.unsqueeze(0)).squeeze(0)
-            Image.fromarray((np.array(target_tens[0].cpu()*255)).astype(np.uint8)).save("./ssl_results/og1.png")
-            Image.fromarray((np.array(target_tens[1].cpu()*255)).astype(np.uint8)).save("./ssl_results/og2.png")
-            Image.fromarray((np.array(out[0].cpu().detach()*255)).astype(np.uint8)).save("./ssl_results/dec1.png")
-            Image.fromarray((np.array(out[1].cpu().detach()*255)).astype(np.uint8)).save("./ssl_results/dec2.png")
+                out = self.model.forward_ssl(target.unsqueeze(0)).squeeze(0)
+            Image.fromarray((np.array(target[0].cpu()*255)).astype(np.uint8)).save("ssl_results/og1.png")
+            Image.fromarray((np.array(target[1].cpu()*255)).astype(np.uint8)).save("ssl_results/og2.png")
+            Image.fromarray((np.array(out[0].cpu().detach()*255)).astype(np.uint8)).save("ssl_results/dec1.png")
+            Image.fromarray((np.array(out[1].cpu().detach()*255)).astype(np.uint8)).save("ssl_results/dec2.png")
 
             # save model
-            torch.save(self.model.state_dict(), "./ssl_pretrained/weights.pt")
+            torch.save(self.model.state_dict(), "ssl_pretrained/weights.pt")
 
             # freeze decoder weights
             for param in self.model.decoder.parameters():
+                param.requires_grad = False
+
+    def transfer_learning(self, mode=0):
+        """ Transfer learning with three modalities:
+            0 -> pretraining + finetuning
+            1 -> pretraining
+            2 -> finetuning
+        """
+        if mode == 2:
+            print("[Transfer learning] Loading pretrained weights")
+            self.load_pretrained("tl_pretrained/weights.pt")
+
+        else:  # pretraining
+            print("[Transfer learning] Pretraining started")
+            # start transfer learning pretraining
+            loss = torch.nn.MSELoss()
+            self.model.train()
+            ep_tot = 0
+            while True:
+                done = False
+                self.env.reset()
+                frames_mem = deque(maxlen=4)
+                target = self.collect_frame(frames_mem)
+                targets_ep, preds_ep = [], []
+                while not done:
+                    # collect frames and pass them through the pretraining network
+                    target = self.collect_frame(frames_mem)
+                    target = torch.tensor(target, device=self.device)
+                    pred = self.model.forward_tl(target.unsqueeze(0)).squeeze(0)
+                    # get the target side from the last frame (0: left, 1: right)
+                    # sum the pixels on the left and right side
+                    # the min represents the side with the pole
+                    left_side_sum = torch.sum(target[-1, :, :int(target.shape[1]/2)])
+                    right_side_sum = torch.sum(target[-1, :, int(target.shape[1]/2):])
+                    target = left_side_sum > right_side_sum
+                    target = target.type(torch.float32).unsqueeze(0)
+                    targets_ep.append(target)
+                    preds_ep.append(pred)
+                    # do a random action
+                    _, _, done, _ = self.env.step(np.random.randint(0, 2))
+                ep_tot += 1
+                # compute loss and execute a training step
+                curr_loss = loss(torch.vstack(preds_ep), torch.vstack(targets_ep))
+                optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
+                optimizer.zero_grad()
+                curr_loss.backward()
+                self.optimizer.step()
+                if ep_tot % 50 == 0:
+                    print("[Transfer learning] Loss:", curr_loss.cpu().detach().numpy())
+                if ep_tot >= 500:
+                    break
+
+            # save model
+            torch.save(self.model.state_dict(), "tl_pretrained/weights.pt")
+
+            # freeze side_output head weights
+            for param in self.model.side_output.parameters():
                 param.requires_grad = False
 
     def novelty_exploration(self, s):
@@ -223,11 +327,11 @@ class DQL:
         self.ICM.train()
         for param in self.ICM.feature_output.parameters():
             param.requires_grad = False
-        for param in self.ICM.encoder.parameters():
+        for param in self.ICM.hidden_layers.parameters():
             param.requires_grad = True
         for param in self.ICM.action_output.parameters():
             param.requires_grad = True
-        # obtain the features fi(s) and predicted a
+        # obtain the features s and s_next and predicted a
         s = torch.tensor(s, device=self.device).unsqueeze(0)
         s_next = torch.tensor(s_next, device=self.device).unsqueeze(0)
         feature_s, feature_s_next, a_pred = self.ICM.forward_inverse(s, s_next)
@@ -271,7 +375,8 @@ class DQL:
             self.target_model.eval()
             if self.double_dql:
                 a_exp_target = self.model.forward(s_next_exp).detach().argmax(dim=1)
-                q_exp_target = self.target_model.forward(s_next_exp).detach().gather(1, a_exp_target.view(-1, 1)).view(-1)
+                q_exp_target = self.target_model.forward(s_next_exp).detach()
+                q_exp_target = q_exp_target.gather(1, a_exp_target.view(-1, 1)).view(-1)
             else:
                 q_exp_target = self.target_model.forward(s_next_exp).detach().max(1)[0]
         # compute mean loss of the batch
@@ -279,23 +384,20 @@ class DQL:
         # compute gradient of loss
         self.optimizer.zero_grad()
         loss.backward()
-        # clip gradients in (-1, 1)
-        # for param in self.model.parameters():
-        #     param.grad.data.clamp_(-1, 1)
         # update weigths
         self.optimizer.step()
         
         return loss.cpu().detach().numpy()
 
     def episode(self, ep):
+        frames_mem = deque(maxlen=4)
         if self.use_rb and ep == 0:
             print("Filling replay buffer before training...")
         # initialize starting state
         s = self.env.reset()
         if self.input_is_img:
-            s = self.collect_frame(None)
+            s = self.collect_frame(frames_mem)
 
-        # TODO change from using self.policy values to other variable
         if self.intr_rew == "novelty-based" and self.simhash_mat is None:
             dim = list(s.shape)
             dim.insert(0, self.k)
@@ -321,7 +423,7 @@ class DQL:
             # The basic reward is always 1 (even if done is True)
             s_next, r, done, _ = self.env.step(a.item())
             if self.input_is_img:
-                s_next = self.collect_frame(s[0])
+                s_next = self.collect_frame(frames_mem)
             # intrinsic reward method
             if self.intr_rew == 'novelty-based':
                 r += self.novelty_exploration(s)

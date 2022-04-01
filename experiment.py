@@ -1,7 +1,7 @@
 import os
 import torch
 import gym
-from classes.DQL_rescaleimg import DQL
+from classes.DQL import DQL
 from classes.Model import *
 from Utilities import argmax
 import argparse
@@ -11,6 +11,7 @@ def main():
     # parse model parameters
     parser.add_argument('-use_img', action='store_true') # True only when used (store_true)
     parser.add_argument('-ssl_mode', action='store', type=int, default=None)
+    parser.add_argument('-tl_mode', action='store', type=int, default=None)
     parser.add_argument('-evaluate', action='store_true')
     parser.add_argument('-run_name', action='store', type=str, default=None)
     parser.add_argument('-net', action='store', type=str, default=None)
@@ -58,16 +59,21 @@ def main():
                     'rms': torch.optim.RMSprop
                 }
 
-    # initialize model params, loss and optimizer
+    # set images, tl and ssl configs
     use_img = args.use_img
-    if not use_img: ssl_mode = None
-    else: ssl_mode = args.ssl_mode  # None: no ssl, 0: pretrain+finetune, 1: pretrain, 2: finetune
+    # SSL/TL modes -> None: no ssl/tl, 0: pretrain+finetune, 1: pretrain, 2: finetune
+    if not use_img: ssl_mode, tl_mode = None, None
+    else: ssl_mode, tl_mode = args.ssl_mode, args.tl_mode
+
+    # initialize model params, loss and optimizer
     if args.net == 'mlp':
         net = MLP(4, 2)
     elif args.net == 'cnn':
         net = ConvNet(4, 2, dueling=args.dueling)
     elif args.net == 'ssl_cnn':
         net = SSLConvNet(4, 2, dueling=args.dueling)
+    elif args.net == 'tl_cnn':
+        net = TLConvNet(4, 2, dueling=args.dueling)
     else:
         print('Select a correct network')
         exit()
@@ -107,8 +113,10 @@ def main():
     )
     # control to make sure we use ssl_mode correctly
     if ssl_mode is not None:
-        dql.self_sup_learn(ssl_mode)
-    if ssl_mode is None or ssl_mode in [0, 2]:
+        dql.self_sup_learn(ssl_mode)    
+    if tl_mode is not None:
+        dql.transfer_learning(tl_mode)
+    if (ssl_mode is None and tl_mode is None) or ssl_mode in [0, 2] or tl_mode in [0, 2]:
         dql()
 
     # test an evaluation run after the model is done training
