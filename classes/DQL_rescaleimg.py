@@ -1,3 +1,4 @@
+import os
 import random
 import cv2
 import numpy as np
@@ -113,6 +114,7 @@ class DQL:
         self.ts_tot = 0
         best_ts_ep = 0
         best_avg = 0
+        best_ep = 0
         ep_tms = []
         for ep in range(self.n_episodes):
             ep_tms.append(self.episode(ep))
@@ -128,8 +130,12 @@ class DQL:
                         else: save = False
                     else: save = True
                     if save:
+                        # remove old weights
+                        if os.path.isfile(f"./{self.run_name}_{best_ep}_weights.pt"): 
+                            os.remove(f"./{self.run_name}_{best_ep}_weights.pt")
                         # save model
                         torch.save(self.model.state_dict(), f"{self.run_name}_{ep}_weights.pt")
+                        best_ep = ep
         if self.run_name is not None:
             # save steps per episode
             np.save(self.run_name, ep_tms)
