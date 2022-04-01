@@ -344,7 +344,7 @@ class DQL:
         # train the forward model and freeze inverse model
         for param in self.ICM.feature_output.parameters():
             param.requires_grad = True
-        for param in self.ICM.encoder.parameters():
+        for param in self.ICM.hidden_layers.parameters():
             param.requires_grad = False
         for param in self.ICM.action_output.parameters():
             param.requires_grad = False
