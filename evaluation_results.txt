@@ -24,3 +24,6 @@ CNN Novelty:                      480.87 |  78.64    |   300  # computationally 
 CNN Cur + Double:                 494.30 |  33.26    |   473
 CNN Cur + Dueling:                498.52 |  10.59    |   419
 CNN Cur + Dou + Due:              499.52 |   4.88    |   501
+
+SSL Base:                         412.45 | 118.81    |  431
+SSL Curiosity:
