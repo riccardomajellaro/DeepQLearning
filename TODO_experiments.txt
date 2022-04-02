@@ -9,12 +9,12 @@ cnn base + novelty OK
 cnn + dueling OK
 cnn + double OK
 
-mlp = base + target_model + buffer # domani con best config
+mlp = base + target_model + buffer OK
 mlp
-mlp + softmax
-mlp + custom rewards 
-mlp + novelty
-mlp + custom rewards + novelty
+mlp + softmax           OK
+mlp + custom rewards    OK
+mlp + novelty           OK
+mlp + custom rewards + novelty  #poi vediamo
 
 cnn = base + curiosity
 cnn + double + curiosity OK
