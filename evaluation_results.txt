@@ -20,10 +20,9 @@ CNN Curiosity:                    500.0  |   0.0     |    68  # best and fastest
 CNN Double:                       410.31 |  97.09    |   141  # fast convergence but sub-optimal results
 CNN Dueling:                      497.47 |  15.39    |   543  # overall notable improvement over base
 CNN Novelty:                      480.87 |  78.64    |   300  # computationally heavy and no majour improvement
-
 CNN Cur + Double:                 494.30 |  33.26    |   473
 CNN Cur + Dueling:                498.52 |  10.59    |   419
 CNN Cur + Dou + Due:              499.52 |   4.88    |   501
-
+---------------------------------------------------------------------------------------------------------
 SSL Base:                         412.45 | 118.81    |  431
 SSL Curiosity:
