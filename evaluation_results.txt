@@ -16,7 +16,7 @@ CNN Base:                         471.66 |  76.60    |   321
 CNN Curiosity:                    500.0  |   0.0     |    68  # best and fastest
 CNN Double:                       410.31 |  97.09    |   141  # fast convergence but sub-optimal results
 CNN Dueling:                      497.47 |  15.39    |   543  # overall notable improvement over base
-CNN Novelty:                      480.87 |  78.64    |   300  # very slow computation
+CNN Novelty:                      480.87 |  78.64    |   300  # very slow computation and no majour improvement
 
 CNN Cur + Double:
 CNN Cur + Dueling:
