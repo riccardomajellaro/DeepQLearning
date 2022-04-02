@@ -50,7 +50,7 @@ def main():
     )
 
     # test an evaluation run after the model is done training
-    trials = 100
+    trials = 200
     ts_ep = [0]*trials
     for i in range(trials):
         done = False

@@ -4,4 +4,4 @@ python evaluate.py \
 -net cnn \
 -use_img \
 -virtual_display \
--run_name ../exp_results/mlp_1
+-run_name ../exp_results/CNN_curiosity_double_dueling_501

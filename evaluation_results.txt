@@ -3,9 +3,9 @@ RESULTS AVEREGED OVER 200 EVALUATION RUNS
                               MEAN STEPS | DEVIATION | EPISODE 
 ------------------------------------------------------------------------------------------------------
 MLP Base:                         499.80 |   1.94    |   527
-MLP Buffer 64:                    500.0  |    0.0    |   201
-MLP Buffer 128:     
-MLP Buffer 256:
+MLP Buffer 64:                    500.0  |   0.0     |   201  # batch size helps decrease the number 
+MLP Buffer 128:                   500.0  |   0.0     |   120  # of episodes needed to train the model
+MLP Buffer 256:                   500.0  |   0.0     |    92
 MLP Target 10:                    500.0  |   0.0     |   595  # tm_wait value plays a key role
 MLP Target 100:                   363.16 |  53.74    |   757  # in stabilizing our model's training
 MLP Target 1000:                   13.23 |   1.49    |   653  # and overall performance
@@ -16,8 +16,8 @@ CNN Base:                         471.66 |  76.60    |   321
 CNN Curiosity:                    500.0  |   0.0     |    68  # best and fastest
 CNN Double:                       410.31 |  97.09    |   141  # fast convergence but sub-optimal results
 CNN Dueling:                      497.47 |  15.39    |   543  # overall notable improvement over base
-CNN Novelty:                      480.87 |  78.64    |   300  # very slow computation and no majour improvement
+CNN Novelty:                      480.87 |  78.64    |   300  # computationally heavy and no majour improvement
 
-CNN Cur + Double:
-CNN Cur + Dueling:
-CNN Cur + Dou + Due:
+CNN Cur + Double:                 494.30 |  33.26    |   473
+CNN Cur + Dueling:                498.52 |  10.59    |   419
+CNN Cur + Dou + Due:              499.52 |   4.88    |   501
