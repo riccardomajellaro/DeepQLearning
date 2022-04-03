@@ -1,5 +1,7 @@
 #!/bin/bash
 
 python evaluate.py \
--net mlp \
--run_name ../exp_results/MLP_buffer_target_ucb_285
+-net tl_cnn \
+-use_img \
+-virtual_display \
+-run_name ../exp_results/TL_1_127
