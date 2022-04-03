@@ -145,6 +145,22 @@ python experiment.py \
 -temp 0.1 \
 -run_name MLP_buffer_target_softmax ;
 
+# MLP + buffer + target + ucb
+echo "~~~MLP + buffer + target + ucb ~~~"
+python experiment.py \
+-net mlp \
+-loss mse \
+-optimizer adam \
+-optim_lr 1e-3 \
+-rb_size 100000 \
+-batch_size 256 \
+-target_model \
+-tm_wait 10 \
+-n_episodes 1000 \
+-gamma 0.99 \
+-policy ucb \
+-run_name MLP_buffer_target_ucb ;
+
 # MLP + buffer + target + custom reward
 echo "~~~MLP + buffer + target + custom rewards ~~~"
 python experiment.py \
