@@ -169,7 +169,7 @@ python experiment.py \
 -optimizer adam \
 -optim_lr 1e-3 \
 -rb_size 100000 \
--batch_size 258 \
+-batch_size 256 \
 -target_model \
 -tm_wait 10 \
 -n_episodes 1000 \
@@ -187,7 +187,7 @@ python experiment.py \
 -optimizer adam \
 -optim_lr 1e-3 \
 -rb_size 100000 \
--batch_size 258 \
+-batch_size 256 \
 -target_model \
 -tm_wait 10 \
 -n_episodes 1000 \
@@ -390,7 +390,7 @@ python experiment.py \
 -n_episodes 1000 \
 -gamma 0.99 \
 -target_model \
--tm_wait 5 \
+-tm_wait 10 \
 -policy egreedy \
 -epsilon 0.025 0.99 1000. \
 -run_name SSL_base ;
