@@ -270,7 +270,7 @@ class DQL:
         else:  # pretraining
             print("[Transfer learning] Pretraining started")
             # start transfer learning pretraining
-            loss = torch.nn.MSELoss()
+            loss = torch.nn.BCELoss()  # TODO change back to MSE
             self.model.train()
             ep_tot = 0
             while True:

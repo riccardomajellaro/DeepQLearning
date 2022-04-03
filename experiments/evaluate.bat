@@ -2,4 +2,4 @@ python evaluate.py ^
 -net tl_cnn ^
 -use_img ^
 -virtual_display ^
--run_name TL_base_225
+-run_name TL_BCE_curiosity_57
