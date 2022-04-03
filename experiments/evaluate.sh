@@ -1,7 +1,5 @@
 #!/bin/bash
 
 python evaluate.py \
--net cnn \
--use_img \
--virtual_display \
--run_name ../exp_results/CNN_curiosity_double_dueling_501
+-net mlp \
+-run_name ../exp_results/MLP_buffer_target_ucb_285

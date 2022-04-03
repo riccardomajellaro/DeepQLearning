@@ -9,11 +9,13 @@ MLP Buffer 256:                   500.0  |   0.0     |    92
 MLP Target 10:                    500.0  |   0.0     |   595  # tm_wait value plays a key role
 MLP Target 100:                   363.16 |  53.74    |   757  # in stabilizing our model's training
 MLP Target 1000:                   13.23 |   1.49    |   653  # and overall performance
-MLP + Buffer + Target:             # In progress 
-MLP + B + T + Softmax:              
-MLP + B + T + Ucb:                  
-MLP + B + T + Custom rew:           # In progress 
-MLP + B + T + Novelty:              # In progress 
+MLP + Buffer + Target:            500.0  |   0.0     |    58
+MLP + B + T + 1000 rb             500.0  |   0.0     |    45
+MLP + B + T + 10000 rb            500.0  |   0.0     |   116
+MLP + B + T + Softmax:            # In progress
+MLP + B + T + Ucb:                 91.21 |  35.29    |   285
+MLP + B + T + Custom rew:         500.0  |   0.0     |   131 
+MLP + B + T + Novelty:            500.0  |   0.0     |    65
 -------------------------------------------------------------------------------------------------------
 CNN Base:                         471.66 |  76.60    |   321
 CNN Curiosity:                    500.0  |   0.0     |    68  # best and fastest
