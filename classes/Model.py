@@ -95,7 +95,7 @@ class SSLConvNet(NN):
     """ Self-supervised learning autoencoder convolutional network
         Architecture:
         - the encoder produces through convolutional layers
-        a low-dimensional latent vector given four grayscale frames
+        a lower-dimensional latent vector given four grayscale frames
         stacked toghether in 4 channels;
         - the decoder decodes the latent vector into the original input
         frames using convolutional transpose layers.

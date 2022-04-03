@@ -2,7 +2,7 @@ RESULTS AVEREGED OVER 200 EVALUATION RUNS
 
                               MEAN STEPS | DEVIATION | EPISODE 
 ------------------------------------------------------------------------------------------------------
-MLP Base:                         499.80 |   1.94    |   527
+MLP Base:                         499.80 |  1.94     |   527
 MLP Buffer 64:                    500.0  |   0.0     |   201  # batch size helps decrease the number 
 MLP Buffer 128:                   500.0  |   0.0     |   120  # of episodes needed to train the model
 MLP Buffer 256:                   500.0  |   0.0     |    92
@@ -10,8 +10,8 @@ MLP Target 10:                    500.0  |   0.0     |   595  # tm_wait value pl
 MLP Target 100:                   363.16 |  53.74    |   757  # in stabilizing our model's training
 MLP Target 1000:                   13.23 |   1.49    |   653  # and overall performance
 MLP + Buffer + Target:             # In progress 
-MLP + B + T + Softmax:              
-MLP + B + T + Ucb:                  
+MLP + B + T + Softmax:            500.00 |    0.0    |   111
+MLP + B + T + Ucb:                  # In progress
 MLP + B + T + Custom rew:           # In progress 
 MLP + B + T + Novelty:              # In progress 
 -------------------------------------------------------------------------------------------------------
@@ -24,5 +24,7 @@ CNN Cur + Double:                 494.30 |  33.26    |   473
 CNN Cur + Dueling:                498.52 |  10.59    |   419
 CNN Cur + Dou + Due:              499.52 |   4.88    |   501
 ---------------------------------------------------------------------------------------------------------
-SSL Base:                         412.45 | 118.81    |  431
-SSL Curiosity:                    478.96 |  76.00    |  577 
+SSL Base:                         412.45 |  118.81   |   431
+SSL Curiosity:                    478.96 |   76.00   |   577 
+TL base:                          477.61 |   66.13   |   225
+TL Curiosity:                     479.90 |   69.85   |   300
