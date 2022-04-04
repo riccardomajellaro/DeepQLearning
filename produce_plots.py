@@ -21,7 +21,8 @@ def add_plot(title, label, y):
 
 name = "CNN"
 fig, ax = plt.subplots()
-for conf in ["CNN_base", "CNN_curiosity"]:
+# ["MLP_base", "MLP_buffer_target", "MLP_buffer_target_novelty"]
+for conf in ["CNN_base", "SSL_base", "TL_base"]:
     steps = np.load("./exp_results/"+conf+".npy")
-    add_plot(name + " - Steps per episode", conf.replace("_", " "), steps)
+    add_plot("Vision CartPole with CNN - Steps per episode", conf.replace("_", " "), steps)
 fig.savefig(name+".png", dpi=300)
