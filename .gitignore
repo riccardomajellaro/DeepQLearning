@@ -1,6 +1,7 @@
 __pycache__
 data/__pycache__
 classes/__pycache__
+full_report.pdf
 evaluation_results.txt
 exp_results/*
 !exp_results/CNN_curiosity_68_weights.pt
