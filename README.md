@@ -37,6 +37,6 @@ along with the following arguments:
 - `-virtual_display`, to execute for example on a headless server
 
 ## Results
-It is possible to train a perfect agent (500 steps per episode) for both standard and vision CartPole. The complete results contained in our full report are omitted in this repository. The following GIF serves as a simple demonstration from one of our experiments (Vision CartPole, CNN + Curiosity congifuration):
+It is possible to train a perfect agent (500 steps per episode) for both standard and vision CartPole. The complete results contained in our full report are omitted in this repository. The following GIF serves as a simple demonstration from one of our experiments (Vision CartPole, CNN + Curiosity configuration):
 
  ![](https://github.com/riccardomajellaro/DeepQLearning/blob/main/readme_files/cartpole_solved_expampl.gif)
