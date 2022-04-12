@@ -1,5 +1,5 @@
 # Solving (Vision) CartPole V1 with Deep Q Learning
-This repository contains the solution to the second assignment of the course Reinforcement Learning from Leiden University. We solved the CartPole V1 problem from OpenAI using Deep Q Learning, both in the standard scenario with a 4-dimensional state space and in the visual scenario with frames as states. For additional information regarding the problem and the methodologies involved in its resolutions, please refer to the <a href=https://github.com/riccardomajellaro/DeepQLearning/blob/main/report_extract.pdf>extract from our report<a/>.
+This repository contains the solution to the second assignment of the course Reinforcement Learning from Leiden University. We solved the CartPole V1 challenge from OpenAI using Deep Q Learning, both in the standard scenario with a 4-dimensional state space and in the visual scenario with frames as states. For additional information regarding the problem and the methodologies involved in its resolutions, please refer to the <a href=https://github.com/riccardomajellaro/DeepQLearning/blob/main/report_extract.pdf>extract from our report<a/>.
 
 ## Authors
 <a href="https://github.com/OhGreat">Dimitrios Ierinomakys</a>, <a href="https://github.com/JonathanCollu">Jonathan Collu</a> and <a href="https://github.com/riccardomajellaro">Riccardo Majellaro</a>
