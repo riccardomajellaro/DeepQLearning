@@ -21,13 +21,7 @@ class DQL:
             - temp : temperature parameter for softmax selection
             - model : Deep Learning agent (model in pytorch)
             - input_is_img : defines if the input is an image
-            - env : Environment to train our model 
-
-        About the model:
-            The model should output two parameters which indicates the probability
-            for each action. The cart problem can be solved with the sigmoid
-            and only one output on the model however, we will do it this way 
-            in order to handle different environments with more actions later on.
+            - env : environment to train our model 
     """
     def __init__(
             self, use_rb=True,
