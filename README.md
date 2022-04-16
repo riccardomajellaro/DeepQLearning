@@ -15,7 +15,6 @@ This repository contains the solution to the second assignment of the course Rei
 
 All the experiments presented in the report are fully reproducible by running the script `./experiments/run_all_exp.sh`. It is important to run the above script from the main directory, to avoid errors with absolute and relative paths.
 
-<br/>
 
 ### Training a new configuration
 
@@ -58,7 +57,6 @@ DQL parameters:
 - `-render` : use this flag to visualize the agent learning during training.
 - `-virtual_display` : use this flag when training the model on a headless server. Avoids errors of unavailable display for pygame.
 
-<br/>
 
 ### Evaluating a configuration
 To evaluate a configuration run the command below from the main directory:
@@ -73,7 +71,6 @@ along with the following provided arguments:
 - `-device` : to indicate where to execute the computations (e.g. "cpu" or "cuda")
 - `-virtual_display` : to execute for example on a headless server
 
-<br/>
 
 ## Results
 It is possible to train a perfect agent (500 steps per episode) for both standard and vision CartPole. The complete results contained in our full report are omitted in this repository. The following GIF serves as a simple demonstration from one of our experiments (Vision CartPole, CNN + Curiosity configuration):
