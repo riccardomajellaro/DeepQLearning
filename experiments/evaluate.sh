@@ -1,7 +1,7 @@
 #!/bin/bash
 
 python evaluate.py \
--net tl_cnn \
+-net cnn \
 -use_img \
 -virtual_display \
--run_name ../exp_results/TL_1_127
+-run_name ../exp_results/CNN_curiosity_68
