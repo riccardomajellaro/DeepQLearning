@@ -27,13 +27,13 @@ To train a configuration you can use the following command, along with the avail
 
 Model parameters:
 - `-use_img` : use this flag to define using frames as states.
-- `-ssl_mode` : used to set the ssl use case. *0* defines training the SSL model, *1* defines the DQL fine tuning and *2* freezes weights to evaluate the model. 
-- `-tl_mode` : defines the transfer learning modality. Similar to the `-ssl_mode` above.
+- `-ssl_mode` : defines the use of self-supervised learning. *0*: pretraining using SSL + fine-tuning using DQL; *1*: only pretraining using SSL; *2*: only fine-tuning using DQL. 
+- `-tl_mode` : defines the use of transfer learning. Equal to the `-ssl_mode` above.
 - `-evaluate` : set this flag to evaluate the model at the end of the training step.
 - `-run_name` : name of the experiment used to save model weights and statistics. 
 - `-net` : defines the actual model to use.
 - `-loss` : defines the loss function to use while training the model.
-- `-optimizer` : defines the optimizer to use while training the model.
+- `-optimizer` : defines the optimizer to use for training the model.
 - `-optim_lr` : defines the learning rate for the optimizer.
 - `-device` : defines the device on which to run the algorithm. This parameter is relative to the physical devices available on your pytorch environment. 
 
@@ -41,7 +41,7 @@ DQL parameters:
 - `-rb_size` : defines the replay buffer size.
 - `-batch_size` : defines the batch size.
 - `-n_episodes` : defines the number of episodes for which to train the model.
-- `-gamma` : defines the disscount factor of far away rewards.
+- `-gamma` : defines the discount factor of previous rewards.
 - `-target_model` : defines the usage of a target model during training.
 - `-tm_wait` : defines the number of timesteps to wait before updating the target model.
 - `-double_dqn` : defines the usage of the double DQN strategy.
@@ -49,12 +49,12 @@ DQL parameters:
 - `-custom_reward` : defines the usage of customly weighted rewards during training. 
 - `-intr_rew` : defines the usage of intrinsec rewards strategy.
 - `-policy` : defines the policy of choice for the model.
-- `-epsilon` : defines the epsilon value for the egreedy policy. Can be an integer or a collection of 3 integers that specify the annealing parameters.
-- `-temp` : definesthe temperature parameter for the softmax policy.
+- `-epsilon` : defines the epsilon value for the egreedy policy. Can be a float or a collection of 3 floats that specify the exponential annealing parameters.
+- `-temp` : defines the temperature parameter for the softmax policy.
 - `-k` : defines the *k* parameter for the intrinsec rewards of the novelty based exploration.
 - `-beta` : defines the *beta* parameter for the intrinsec rewards of the novelty based exploration.
-- `-eta` : defines the *eta* parameter for the intrinsec rewards of the novelty based exploration.
-- `-render` : use this flag to visualize the agent learning during training.
+- `-eta` : defines the *eta* parameter for the intrinsec rewards of the curiosity based exploration.
+- `-render` : use this flag to visualize the agent during training.
 - `-virtual_display` : use this flag when training the model on a headless server. Avoids errors of unavailable display for pygame.
 
 
